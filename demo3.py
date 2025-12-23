@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import asyncio
+import platform
 from pathlib import Path
 from typing import Optional, Tuple, List
 
@@ -533,7 +534,20 @@ def main_page():
 
 
 def handle_shutdown():
-    app.shutdown()
+    print("👋 正在关闭应用...")
+    
+    # 获取当前操作系统
+    current_os = platform.system()
+    
+    if current_os == 'Windows':
+        # Windows 打包后容易残留后台，使用暴力退出
+        # 注意：先打印日志，因为 _exit 会立即结束所有
+        os._exit(0)
+    else:
+        # macOS 和 Linux 通常能通过常规方式优雅关闭
+        # 这里不需要手动调用 os._exit，让 NiceGUI 自然结束即可
+        # 这样就不会报 leaked semaphore 的警告了
+        pass
 
 app.on_shutdown(handle_shutdown)
 
