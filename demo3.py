@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Tuple, List
 
 import pandas as pd
-from nicegui import ui
+from nicegui import ui, app
 
 
 class BOMClassifier:
@@ -530,6 +530,12 @@ def main_page():
             with ui.row().classes('w-full justify-between items-center'):
                 ui.label('💡 智能识别表头位置 · 支持不规范BOM格式 · 材料列需包含"板"和"T="关键字').classes('text-sm')
                 ui.label('v2.1 Pro').classes('text-xs opacity-70')
+
+
+def handle_shutdown():
+    app.shutdown()
+
+app.on_shutdown(handle_shutdown)
 
 # 启动应用
 ui.run(
