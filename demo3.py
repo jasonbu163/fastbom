@@ -535,32 +535,38 @@ def main_page():
 
 
 def handle_shutdown():
+    """处理应用关闭"""
     print("👋 正在关闭应用...")
     
-    # 获取当前操作系统
     current_os = platform.system()
     
     if current_os == 'Windows':
-        # Windows 打包后容易残留后台，使用暴力退出
-        # 注意：先打印日志，因为 _exit 会立即结束所有
-        current_process = psutil.Process(os.getpid())
-        # 杀掉所有子进程（包括可能残留的 uvicorn）
-        for child in current_process.children(recursive=True):
-            child.kill()
-        os._exit(0)
+        # Windows需要强制终止所有相关进程
+        try:
+            current_process = psutil.Process(os.getpid())
+            # 终止所有子进程
+            children = current_process.children(recursive=True)
+            for child in children:
+                child.terminate()
+            psutil.wait_procs(children, timeout=3)
+            # 强制退出主进程
+            os._exit(0)
+        except Exception as e:
+            print(f"清理进程时出错: {e}")
+            os._exit(0)
     else:
-        # macOS 和 Linux 通常能通过常规方式优雅关闭
-        # 这里不需要手动调用 os._exit，让 NiceGUI 自然结束即可
-        # 这样就不会报 leaked semaphore 的警告了
+        # macOS 和 Linux 可以自然退出
         pass
 
 app.on_shutdown(handle_shutdown)
 
-# 启动应用
+# 启动应用（添加on_air参数确保关闭时退出）
 ui.run(
     title='BOM智能分类助手 Pro',
     native=True,
     window_size=(1000, 800),
     favicon='🎯',
     port=8765,
+    reload=False,  # 关闭自动重载
+    show=False,     # 不显示浏览器窗口（只显示native窗口）
 )
