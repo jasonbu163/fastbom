@@ -210,26 +210,35 @@ class BOMClassifier:
                 # 获取各列数据
                 part_name = str(row.get(config['part'], '')).strip()
                 material_raw = str(row.get(config['mat'], '')).strip()
-                thickness_backup = str(row.get(config.get('thk', ''), '')).strip()  # 备用厚度列
+                material_backup = str(row.get(config.get('mat_backup', ''), '')).strip()  # 材质备用列
+                thickness_backup = str(row.get(config.get('thk', ''), '')).strip()  # 厚度备用列
                 quantity = str(row.get(config['qty'], '1')).strip()
                 
                 # 跳过空行
                 if not part_name or part_name == 'nan':
                     continue
                 
-                # 解析材质和厚度
+                # 解析材质和厚度（从材质列）
                 material, thickness = self.parse_material(material_raw)
                 
-                # 如果解析失败，使用原始值或默认值
+                # 材质备用逻辑
                 if not material:
-                    # 材质无法从材质列解析，尝试使用材质列原始值
-                    material = material_raw if material_raw and material_raw != 'nan' else "未分类材质"
+                    # 无法从材质列解析材质，使用备用列
+                    if material_backup and material_backup != 'nan':
+                        material = material_backup
+                        log.push(f"💡 [{part_name}] 使用材质备用列: {material}")
+                    elif material_raw and material_raw != 'nan':
+                        # 如果没有备用列，使用材质列原始值
+                        material = material_raw
+                    else:
+                        material = "未分类材质"
                 
+                # 厚度备用逻辑
                 if not thickness:
-                    # 厚度无法从材质列解析，使用备用厚度列
+                    # 无法从材质列解析厚度，使用备用列
                     if thickness_backup and thickness_backup != 'nan':
                         thickness = thickness_backup
-                        log.push(f"💡 [{part_name}] 使用备用厚度列: {thickness}")
+                        log.push(f"💡 [{part_name}] 使用厚度备用列: {thickness}")
                     else:
                         thickness = "未知厚度"
                 
@@ -299,8 +308,8 @@ def main_page():
     # 背景样式
     ui.query('body').style('background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)')
     
-    # 配置存储
-    config = {'part': '', 'mat': '', 'thk': '', 'qty': ''}
+    # 配置存储（增加材质备用列）
+    config = {'part': '', 'mat': '', 'mat_backup': '', 'thk': '', 'qty': ''}
     
     with ui.column().classes('w-full max-w-5xl mx-auto p-8 gap-6'):
         # 标题区
@@ -315,10 +324,15 @@ def main_page():
                 ui.label('第一步：准备工作目录').classes('text-2xl font-bold text-gray-800')
             
             ui.markdown(
-                '点击下方按钮将自动创建3个文件夹：\n'
-                '- **1_放入BOM表**：放入Excel格式的BOM表\n'
-                '- **2_放入源文件**：放入所有需要分类的工程文件\n'
-                '- **3_分类结果输出**：自动生成的分类结果'
+                """
+                点击下方按钮将自动创建3个文件夹：
+
+                - **1_放入BOM表**：放入Excel格式的BOM表
+
+                - **2_放入源文件**：放入所有需要分类的工程文件
+
+                - **3_分类结果输出**：自动生成的分类结果
+                """
             ).classes('text-gray-700 mb-4')
             
             ui.button(
@@ -343,6 +357,7 @@ def main_page():
             # 先定义所有下拉框（在定义 update_headers 函数之前）
             ui.separator().classes('my-4')
             ui.label('配置列映射关系：').classes('text-sm font-semibold text-gray-700 mb-2')
+            ui.markdown('💡 **提示**：材质列应包含完整信息如"Q345板 T=10"，程序会自动拆分出材质和厚度。如果拆分失败，会使用备用列。').classes('text-xs text-gray-500 mb-3')
             
             with ui.grid(columns=2).classes('w-full gap-4'):
                 sel_part = ui.select(
@@ -363,8 +378,17 @@ def main_page():
                     with_input=True
                 ).classes('w-full').bind_value(config, 'qty')
                 
+                # 空白占位，让下面两个备用列单独成行
+                ui.label('').classes('hidden')
+                
+                sel_mat_backup = ui.select(
+                    label='🛠️ 材质备用列（无法解析时使用此列）',
+                    options=[],
+                    with_input=True
+                ).classes('w-full').bind_value(config, 'mat_backup')
+                
                 sel_thk = ui.select(
-                    label='📏 厚度备用列（材质列无法解析时使用）',
+                    label='📏 厚度备用列（无法解析时使用此列）',
                     options=[],
                     with_input=True
                 ).classes('w-full').bind_value(config, 'thk')
@@ -380,6 +404,7 @@ def main_page():
                     sel_part.options = classifier.headers
                     sel_mat.options = classifier.headers
                     sel_qty.options = classifier.headers
+                    sel_mat_backup.options = classifier.headers
                     sel_thk.options = classifier.headers
                     
                     # 智能匹配列名
@@ -391,20 +416,20 @@ def main_page():
                             sel_part.value = h
                             config['part'] = h
                         
-                        # 材质列
+                        # 材质列（优先匹配包含"材"的列）
                         if any(kw in h_lower for kw in ['材质', '材料', 'material', '材']):
                             sel_mat.value = h
                             config['mat'] = h
-                        
-                        # 厚度列
-                        if any(kw in h_lower for kw in ['厚度', '厚', 'thickness', 't=']):
-                            sel_thk.value = h
-                            config['thk'] = h
                         
                         # 数量列
                         if any(kw in h_lower for kw in ['数量', 'qty', 'quantity', '个数', '件数']):
                             sel_qty.value = h
                             config['qty'] = h
+                        
+                        # 厚度备用列
+                        if any(kw in h_lower for kw in ['厚度', '厚', 'thickness', 't=']):
+                            sel_thk.value = h
+                            config['thk'] = h
                     
                     ui.notify("🎯 列映射已自动匹配，请检查是否正确", type='info')
             
@@ -447,12 +472,20 @@ def main_page():
                 def refresh_config():
                     config_md = f"""
 **当前列映射配置：**
-- 零件号列：`{config['part'] or '未设置'}` *
-- 材质列：`{config['mat'] or '未设置'}` *
-- 数量列：`{config['qty'] or '未设置'}` *
-- 厚度备用列：`{config.get('thk', '') or '未设置'}`（可选）
 
-_标记 * 的为必填项_
+**必填项：**
+- 零件号列：`{config['part'] or '未设置'}`
+- 材质列：`{config['mat'] or '未设置'}`（应包含"XX板 T=数字"格式）
+- 数量列：`{config['qty'] or '未设置'}`
+
+**可选备用列：**
+- 材质备用列：`{config.get('mat_backup', '') or '未设置'}`（材质列无法解析材质时使用）
+- 厚度备用列：`{config.get('thk', '') or '未设置'}`（材质列无法解析厚度时使用）
+
+**解析逻辑：**
+1. 从材质列解析 "XX板 T=10" → 提取 材质="XX板", 厚度="10"
+2. 如果无法解析出材质 → 使用材质备用列
+3. 如果无法解析出厚度 → 使用厚度备用列
 """
                     config_text.content = config_md
                 
