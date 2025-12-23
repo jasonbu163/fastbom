@@ -30,16 +30,20 @@ class BOMClassifier:
         readme = self.base_path / "使用说明.txt"
         if not readme.exists():
             readme.write_text(
-                "BOM智能分类工具使用指南\n"
-                "=" * 50 + "\n\n"
-                "1️⃣ 将BOM Excel表放入 '1_放入BOM表' 文件夹\n"
-                "2️⃣ 将所有源文件放入 '2_放入源文件' 文件夹\n"
-                "3️⃣ 分类结果将输出到 '3_分类结果输出' 文件夹\n\n"
-                "注意事项：\n"
-                "• BOM表的材料列需包含类似 'A3板 T=10' 的格式\n"
-                "• 源文件名需与BOM表中的零件名称匹配\n"
-                "• 支持模糊匹配，只要文件名包含零件名即可\n"
-                "• 表头不在第一行？工具会自动识别！\n",
+                """
+                =========================
+                BOM智能分类工具使用指南
+                =========================
+                1. 将BOM Excel表放入 '1_放入BOM表' 文件夹
+                2. 将所有源文件放入 '2_放入源文件' 文件夹
+                3. 分类结果将输出到 '3_分类结果输出' 文件夹
+                
+                # 注意事项：
+                - BOM表的材料列需包含类似 'A3板 T=10' 的格式
+                - 源文件名需与BOM表中的零件名称匹配
+                - 支持模糊匹配，只要文件名包含零件名即可
+                - 表头不在第一行？工具会自动识别！
+                """,
                 encoding='utf-8'
             )
         
@@ -370,17 +374,17 @@ def main_page():
                         h_lower = h.lower()
                         
                         # 零件列
-                        if any(kw in h_lower for kw in ['零件', '图号', '名称', 'part', 'name', '部件']):
+                        if any(kw in h_lower for kw in ['物料', '物料描述', '零件', '图号', '名称', 'part', 'name', '部件']):
                             sel_part.value = h
                             config['part'] = h
                         
                         # 材质列（优先匹配包含"材"的列）
-                        if any(kw in h_lower for kw in ['材质', '材料', 'material', '材']):
+                        if any(kw in h_lower for kw in ['材料', '材质', 'material', '材']):
                             sel_mat.value = h
                             config['mat'] = h
                         
                         # 数量列
-                        if any(kw in h_lower for kw in ['数量', 'qty', 'quantity', '个数', '件数']):
+                        if any(kw in h_lower for kw in ['数量', '总数量', 'qty', 'quantity', '个数', '件数']):
                             sel_qty.value = h
                             config['qty'] = h
                         
@@ -390,7 +394,7 @@ def main_page():
                             config['thk'] = h
 
                         # 材质备用列
-                        if any(kw in h_lower for kw in ['材质', '材料', 'material', '材']):
+                        if any(kw in h_lower for kw in ['名称', '材料', '材质', 'material', '材']):
                             sel_mat_backup.value = h
                             config['mat_backup'] = h
                     
