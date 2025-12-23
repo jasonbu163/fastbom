@@ -163,8 +163,14 @@ class BOMClassifier:
             ui.notify("❌ 请先加载BOM表头", type='negative')
             return
         
-        if not all(config.values()):
-            ui.notify("⚠️ 请先配置所有列映射", type='warning')
+        # 检查必填列（厚度列是可选的）
+        required_fields = ['part', 'mat', 'qty']
+        missing_fields = [f for f in required_fields if not config.get(f)]
+        
+        if missing_fields:
+            field_names = {'part': '零件号列', 'mat': '材质列', 'qty': '数量列'}
+            missing_names = [field_names[f] for f in missing_fields]
+            ui.notify(f"⚠️ 请配置: {', '.join(missing_names)}", type='warning')
             return
         
         log.clear()
@@ -302,15 +308,10 @@ def main_page():
                 ui.label('第一步：准备工作目录').classes('text-2xl font-bold text-gray-800')
             
             ui.markdown(
-                """
-                点击下方按钮将自动创建3个文件夹：
-
-                - **1_放入BOM表**：放入Excel格式的BOM表
-
-                - **2_放入源文件**：放入所有需要分类的工程文件
-                
-                - **3_分类结果输出**：自动生成的分类结果
-                """
+                '点击下方按钮将自动创建3个文件夹：\n'
+                '- **1_放入BOM表**：放入Excel格式的BOM表\n'
+                '- **2_放入源文件**：放入所有需要分类的工程文件\n'
+                '- **3_分类结果输出**：自动生成的分类结果'
             ).classes('text-gray-700 mb-4')
             
             ui.button(
