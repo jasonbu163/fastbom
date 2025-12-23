@@ -340,6 +340,35 @@ def main_page():
             # 表头行号显示
             header_info = ui.label('').classes('text-sm text-gray-500 mb-2')
             
+            # 先定义所有下拉框（在定义 update_headers 函数之前）
+            ui.separator().classes('my-4')
+            ui.label('配置列映射关系：').classes('text-sm font-semibold text-gray-700 mb-2')
+            
+            with ui.grid(columns=2).classes('w-full gap-4'):
+                sel_part = ui.select(
+                    label='📋 零件号列 *',
+                    options=[],
+                    with_input=True
+                ).classes('w-full').bind_value(config, 'part')
+                
+                sel_mat = ui.select(
+                    label='🔧 材质列 *（需含"XX板 T=数字"）',
+                    options=[],
+                    with_input=True
+                ).classes('w-full').bind_value(config, 'mat')
+                
+                sel_qty = ui.select(
+                    label='🔢 数量列 *',
+                    options=[],
+                    with_input=True
+                ).classes('w-full').bind_value(config, 'qty')
+                
+                sel_thk = ui.select(
+                    label='📏 厚度备用列（材质列无法解析时使用）',
+                    options=[],
+                    with_input=True
+                ).classes('w-full').bind_value(config, 'thk')
+            
             # 加载按钮
             def update_headers():
                 if classifier.load_bom_headers():
@@ -347,11 +376,11 @@ def main_page():
                     header_info.text = f"✨ 检测到表头在第 {classifier.header_row + 1} 行，共识别 {len(classifier.headers)} 列"
                     header_info.classes('text-sm text-green-600 font-semibold')
                     
-                    # 更新下拉框选项
+                    # 更新所有下拉框选项
                     sel_part.options = classifier.headers
                     sel_mat.options = classifier.headers
-                    sel_thk.options = classifier.headers
                     sel_qty.options = classifier.headers
+                    sel_thk.options = classifier.headers
                     
                     # 智能匹配列名
                     for h in classifier.headers:
@@ -411,35 +440,6 @@ def main_page():
                     icon='edit'
                 ).props('flat size=md')
             
-            ui.separator().classes('my-4')
-            
-            # 列映射选择器
-            ui.label('配置列映射关系：').classes('text-sm font-semibold text-gray-700 mb-2')
-            with ui.grid(columns=2).classes('w-full gap-4'):
-                sel_part = ui.select(
-                    label='📋 零件号列 *',
-                    options=[],
-                    with_input=True
-                ).classes('w-full').bind_value(config, 'part')
-                
-                sel_mat = ui.select(
-                    label='🔧 材质列 *（需含"XX板 T=数字"）',
-                    options=[],
-                    with_input=True
-                ).classes('w-full').bind_value(config, 'mat')
-                
-                sel_qty = ui.select(
-                    label='🔢 数量列 *',
-                    options=[],
-                    with_input=True
-                ).classes('w-full').bind_value(config, 'qty')
-                
-                sel_thk = ui.select(
-                    label='📏 厚度备用列（材质列无法解析时使用）',
-                    options=[],
-                    with_input=True
-                ).classes('w-full').bind_value(config, 'thk')
-            
             # 配置预览
             with ui.expansion('🔍 查看当前配置', icon='visibility').classes('w-full mt-4 bg-gray-50'):
                 config_text = ui.markdown('').classes('text-sm font-mono')
@@ -493,7 +493,6 @@ _标记 * 的为必填项_
 ui.run(
     title='BOM智能分类助手 Pro',
     native=True,
-    show_welcome_message=True,
-    window_size=(800, 600),
+    window_size=(1000, 800),
     favicon='🎯'
 )
