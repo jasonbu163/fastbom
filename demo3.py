@@ -385,9 +385,14 @@ def main_page():
                             config['qty'] = h
                         
                         # 厚度备用列
-                        if any(kw in h_lower for kw in ['厚度', '厚', 'thickness', 't=']):
+                        if any(kw in h_lower for kw in ['规格', '厚度', '厚', 'thickness', 't=']):
                             sel_thk.value = h
                             config['thk'] = h
+
+                        # 材质备用列
+                        if any(kw in h_lower for kw in ['材质', '材料', 'material', '材']):
+                            sel_mat_backup.value = h
+                            config['mat_backup'] = h
                     
                     ui.notify("🎯 列映射已自动匹配，请检查是否正确", type='info')
 
