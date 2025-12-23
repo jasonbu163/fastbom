@@ -223,6 +223,10 @@ class BOMClassifier:
                 # 跳过空行
                 if not part_name or part_name == 'nan':
                     continue
+
+                # 跳过非数字数量
+                if quantity == 'nan' or not quantity.isdigit():
+                    continue
                 
                 # 解析材质和厚度（从材质列）
                 material, thickness = self.parse_material(material_raw)
