@@ -350,6 +350,78 @@ def main_page():
             with ui.row().classes('w-full items-center gap-2 mb-4'):
                 ui.icon('auto_awesome', size='sm').classes('text-orange-500')
                 ui.label('将BOM表放入文件夹1后，点击按钮自动识别表头位置').classes('text-gray-600')
+
+            # 加载按钮
+            def update_headers():
+                if classifier.load_bom_headers():
+                    # 显示表头行号
+                    header_info.text = f"✨ 检测到表头在第 {classifier.header_row + 1} 行，共识别 {len(classifier.headers)} 列"
+                    header_info.classes('text-sm text-green-600 font-semibold')
+                    
+                    # 更新所有下拉框选项
+                    sel_part.options = classifier.headers
+                    sel_mat.options = classifier.headers
+                    sel_qty.options = classifier.headers
+                    sel_mat_backup.options = classifier.headers
+                    sel_thk.options = classifier.headers
+                    
+                    # 智能匹配列名
+                    for h in classifier.headers:
+                        h_lower = h.lower()
+                        
+                        # 零件列
+                        if any(kw in h_lower for kw in ['零件', '图号', '名称', 'part', 'name', '部件']):
+                            sel_part.value = h
+                            config['part'] = h
+                        
+                        # 材质列（优先匹配包含"材"的列）
+                        if any(kw in h_lower for kw in ['材质', '材料', 'material', '材']):
+                            sel_mat.value = h
+                            config['mat'] = h
+                        
+                        # 数量列
+                        if any(kw in h_lower for kw in ['数量', 'qty', 'quantity', '个数', '件数']):
+                            sel_qty.value = h
+                            config['qty'] = h
+                        
+                        # 厚度备用列
+                        if any(kw in h_lower for kw in ['厚度', '厚', 'thickness', 't=']):
+                            sel_thk.value = h
+                            config['thk'] = h
+                    
+                    ui.notify("🎯 列映射已自动匹配，请检查是否正确", type='info')
+
+            with ui.row().classes('w-full gap-2'):
+                ui.button(
+                    '🔍 智能加载BOM表头',
+                    on_click=update_headers,
+                    icon='refresh'
+                ).props('size=md color=orange-6 no-caps').classes('flex-grow')
+                
+                # 手动指定表头行（高级选项）
+                with ui.dialog() as manual_dialog, ui.card().classes('p-6'):
+                    ui.label('手动指定表头行号').classes('text-xl font-bold mb-4')
+                    row_input = ui.number('表头行号（从1开始）', value=1, min=1, max=50).classes('w-64')
+                    
+                    def manual_load():
+                        try:
+                            classifier.header_row = int(row_input.value) - 1
+                            df = pd.read_excel(classifier.bom_file, header=classifier.header_row, nrows=1)
+                            classifier.headers = [h for h in df.columns if not str(h).startswith('Unnamed')]
+                            update_headers()
+                            manual_dialog.close()
+                        except Exception as e:
+                            ui.notify(f"加载失败: {e}", type='negative')
+                    
+                    with ui.row().classes('w-full justify-end gap-2 mt-4'):
+                        ui.button('取消', on_click=manual_dialog.close).props('flat')
+                        ui.button('确定', on_click=manual_load).props('color=primary')
+                
+                ui.button(
+                    '手动指定',
+                    on_click=manual_dialog.open,
+                    icon='edit'
+                ).props('flat size=md')
             
             # 表头行号显示
             header_info = ui.label('').classes('text-sm text-gray-500 mb-2')
@@ -392,78 +464,7 @@ def main_page():
                     options=[],
                     with_input=True
                 ).classes('w-full').bind_value(config, 'thk')
-            
-            # 加载按钮
-            def update_headers():
-                if classifier.load_bom_headers():
-                    # 显示表头行号
-                    header_info.text = f"✨ 检测到表头在第 {classifier.header_row + 1} 行，共识别 {len(classifier.headers)} 列"
-                    header_info.classes('text-sm text-green-600 font-semibold')
-                    
-                    # 更新所有下拉框选项
-                    sel_part.options = classifier.headers
-                    sel_mat.options = classifier.headers
-                    sel_qty.options = classifier.headers
-                    sel_mat_backup.options = classifier.headers
-                    sel_thk.options = classifier.headers
-                    
-                    # 智能匹配列名
-                    for h in classifier.headers:
-                        h_lower = h.lower()
-                        
-                        # 零件列
-                        if any(kw in h_lower for kw in ['零件', '图号', '名称', 'part', 'name', '部件']):
-                            sel_part.value = h
-                            config['part'] = h
-                        
-                        # 材质列（优先匹配包含"材"的列）
-                        if any(kw in h_lower for kw in ['材质', '材料', 'material', '材']):
-                            sel_mat.value = h
-                            config['mat'] = h
-                        
-                        # 数量列
-                        if any(kw in h_lower for kw in ['数量', 'qty', 'quantity', '个数', '件数']):
-                            sel_qty.value = h
-                            config['qty'] = h
-                        
-                        # 厚度备用列
-                        if any(kw in h_lower for kw in ['厚度', '厚', 'thickness', 't=']):
-                            sel_thk.value = h
-                            config['thk'] = h
-                    
-                    ui.notify("🎯 列映射已自动匹配，请检查是否正确", type='info')
-            
-            with ui.row().classes('w-full gap-2'):
-                ui.button(
-                    '🔍 智能加载BOM表头',
-                    on_click=update_headers,
-                    icon='refresh'
-                ).props('size=md color=orange-6 no-caps').classes('flex-grow')
-                
-                # 手动指定表头行（高级选项）
-                with ui.dialog() as manual_dialog, ui.card().classes('p-6'):
-                    ui.label('手动指定表头行号').classes('text-xl font-bold mb-4')
-                    row_input = ui.number('表头行号（从1开始）', value=1, min=1, max=50).classes('w-64')
-                    
-                    def manual_load():
-                        try:
-                            classifier.header_row = int(row_input.value) - 1
-                            df = pd.read_excel(classifier.bom_file, header=classifier.header_row, nrows=1)
-                            classifier.headers = [h for h in df.columns if not str(h).startswith('Unnamed')]
-                            update_headers()
-                            manual_dialog.close()
-                        except Exception as e:
-                            ui.notify(f"加载失败: {e}", type='negative')
-                    
-                    with ui.row().classes('w-full justify-end gap-2 mt-4'):
-                        ui.button('取消', on_click=manual_dialog.close).props('flat')
-                        ui.button('确定', on_click=manual_load).props('color=primary')
-                
-                ui.button(
-                    '手动指定',
-                    on_click=manual_dialog.open,
-                    icon='edit'
-                ).props('flat size=md')
+    
             
             # 配置预览
             with ui.expansion('🔍 查看当前配置', icon='visibility').classes('w-full mt-4 bg-gray-50'):
