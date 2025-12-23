@@ -5,6 +5,7 @@ import asyncio
 import platform
 from pathlib import Path
 from typing import Optional, Tuple, List
+import psutil
 
 import pandas as pd
 from nicegui import ui, app
@@ -542,6 +543,10 @@ def handle_shutdown():
     if current_os == 'Windows':
         # Windows 打包后容易残留后台，使用暴力退出
         # 注意：先打印日志，因为 _exit 会立即结束所有
+        current_process = psutil.Process(os.getpid())
+        # 杀掉所有子进程（包括可能残留的 uvicorn）
+        for child in current_process.children(recursive=True):
+            child.kill()
         os._exit(0)
     else:
         # macOS 和 Linux 通常能通过常规方式优雅关闭
