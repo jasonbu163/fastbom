@@ -64,22 +64,22 @@ FastBOM 是一个基于 NiceGUI 开发的桌面应用程序，专门用于根据
 ## 项目结构
 
 1. **主要功能模块**
-   - [demo1.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo1.py) - 基础版本的BOM分类工具
-   - [demo2.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo2.py) - 增强版，具有智能表头检测功能
-   - [demo3.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo3.py) - 最完整版本，包含更多优化功能
+   - `demo1.py` - 基础版本的BOM分类工具
+   - `demo2.py` - 增强版，具有智能表头检测功能
+   - `demo3.py` - 最完整版本，包含更多优化功能
 
 2. **工具模块**
-   - [build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py) - 项目打包脚本，用于将应用打包为可执行文件
-   - [file_maker.py](file:///Users/jason/Desktop/DreamCode/fastbom/file_maker.py) - 文件生成工具（可能用于测试）
+   - `build.py` - 项目打包脚本，用于将应用打包为可执行文件
+   - `file_maker.py` - 文件生成工具（可能用于测试）
 
 3. **配置文件**
-   - [pyproject.toml](file:///Users/jason/Desktop/DreamCode/fastbom/pyproject.toml) - 项目依赖和配置
-   - [README.md](file:///Users/jason/Desktop/DreamCode/fastbom/README.md) - 项目说明文档
+   - `pyproject.toml` - 项目依赖和配置
+   - `README.md` - 项目说明文档
 
 ## 运行和部署
 
 - **开发环境**：Python 3.13+，通过`poetry install`安装依赖
 - **本地运行**：`python demo1.py`（或其他demo文件）
-- **打包部署**：使用[build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py)脚本打包为独立可执行文件
+- **打包部署**：使用`build.py`脚本打包为独立可执行文件
 
 FastBOM项目是一个专注于制造业工程文件自动分类的实用工具，通过简单的三步操作即可完成复杂的BOM表驱动文件分类任务，极大地提高了工作效率。

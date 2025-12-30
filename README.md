@@ -64,22 +64,22 @@ FastBOM is a desktop application developed based on NiceGUI, specifically design
 ## Project Structure
 
 1. **Main Functional Modules**
-   - [demo1.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo1.py) - Basic version of BOM classification tool
-   - [demo2.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo2.py) - Enhanced version with intelligent header detection
-   - [demo3.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo3.py) - Most complete version with additional optimization features
+   - `demo1.py` - Basic version of BOM classification tool
+   - `demo2.py` - Enhanced version with intelligent header detection
+   - `demo3.py` - Most complete version with additional optimization features
 
 2. **Tool Modules**
-   - [build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py) - Project packaging script for packaging applications as executable files
-   - [file_maker.py](file:///Users/jason/Desktop/DreamCode/fastbom/file_maker.py) - File generation tool (possibly for testing)
+   - `build.py` - Project packaging script for packaging applications as executable files
+   - `file_maker.py` - File generation tool (possibly for testing)
 
 3. **Configuration Files**
-   - [pyproject.toml](file:///Users/jason/Desktop/DreamCode/fastbom/pyproject.toml) - Project dependencies and configuration
-   - [README.md](file:///Users/jason/Desktop/DreamCode/fastbom/README.md) - Project documentation
+   - `pyproject.toml` - Project dependencies and configuration
+   - `README.md` - Project documentation
 
 ## Running and Deployment
 
 - **Development Environment**: Python 3.13+, install dependencies with `poetry install`
 - **Local Run**: `python demo1.py` (or other demo files)
-- **Packaging Deployment**: Use [build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py) script to package as standalone executable file
+- **Packaging Deployment**: Use `build.py` script to package as standalone executable file
 
-FastBOM is a practical tool focused on automated classification of manufacturing engineering files. Through simple three-step operations, complex BOM table-driven file classification tasks can be completed, greatly improving work efficiency.
+`FastBOM` is a practical tool focused on automated classification of manufacturing engineering files. Through simple three-step operations, complex BOM table-driven file classification tasks can be completed, greatly improving work efficiency.
