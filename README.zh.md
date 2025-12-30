@@ -1,0 +1,85 @@
+# FastBOM
+
+## 项目概述
+FastBOM 是一个基于 NiceGUI 开发的桌面应用程序，专门用于根据 BOM（物料清单）表自动对 PLM 系统导出的工程文件进行智能分类整理。该工具能够解析不规范但有模式可循的材料描述字段，实现自动化目录结构生成与文件重命名复制。
+
+## 核心功能
+
+1. **目录初始化功能**
+   - 自动创建三个工作目录：BOM表存放目录、源文件目录、分类结果输出目录
+   - 提供一键打开工作目录功能，便于用户操作
+
+2. **BOM表智能解析**
+   - 智能检测表头位置（即使表头不在第一行也能识别）
+   - 解析材料列内容，识别"XX板 T=数字"或"XX板T=数字"格式的材质和厚度信息
+   - 支持Excel文件格式（.xlsx和.xls）
+
+3. **列映射配置**
+   - 用户可自定义映射BOM表中的零件号列、材质列、厚度列和数量列
+   - 提供自动匹配建议（根据列名中的关键词自动选择）
+
+4. **文件分类执行**
+   - 根据BOM表信息将源文件分类到`/材质/厚度/(数量)原始文件.pdf`目录结构
+   - 支持模糊匹配文件名，提高匹配成功率
+   - 实时显示处理进度和日志信息
+
+## 项目特性
+
+1. **用户友好的界面**
+   - 采用三步式引导界面：设置目录 → 解析BOM并配置映射 → 执行分类并显示进度
+   - 使用NiceGUI构建的现代化UI界面，操作简单直观
+
+2. **容错性强**
+   - 支持材料字段中的空格差异（如"A3板 T=10"和"A3板T=10"都能识别）
+   - 智能表头检测功能，适应不同格式的BOM表
+   - 支持跨平台操作（Windows、macOS、Linux）
+
+3. **高效处理能力**
+   - 异步处理机制，避免界面卡顿
+   - 批量文件处理，提高工作效率
+   - 实时进度反馈，便于用户了解处理状态
+
+4. **灵活配置**
+   - 可自定义列映射关系，适应不同BOM表格式
+   - 支持不同类型的材料和厚度命名规则
+
+## 技术栈
+
+1. **前端框架**
+   - [NiceGUI](https://github.com/zauberzeug/nicegui) - Python Web GUI框架，用于构建用户界面
+
+2. **数据处理**
+   - [pandas](https://pandas.pydata.org/) - 用于处理Excel文件和数据表格
+   - [openpyxl](https://openpyxl.readthedocs.io/) - Excel文件读写支持
+   - [xlrd](https://xlrd.readthedocs.io/) - 旧版Excel文件支持
+
+3. **打包工具**
+   - [PyInstaller](https://pyinstaller.org/) - 用于将Python应用打包为独立可执行文件
+   - [pywebview](https://pywebview.flowrl.com/) - 用于创建原生窗口应用
+
+4. **其他依赖**
+   - [psutil](https://psutil.readthedocs.io/) - 系统和进程监控工具
+   - Python标准库（os、shutil、re、asyncio、pathlib等）
+
+## 项目结构
+
+1. **主要功能模块**
+   - [demo1.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo1.py) - 基础版本的BOM分类工具
+   - [demo2.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo2.py) - 增强版，具有智能表头检测功能
+   - [demo3.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo3.py) - 最完整版本，包含更多优化功能
+
+2. **工具模块**
+   - [build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py) - 项目打包脚本，用于将应用打包为可执行文件
+   - [file_maker.py](file:///Users/jason/Desktop/DreamCode/fastbom/file_maker.py) - 文件生成工具（可能用于测试）
+
+3. **配置文件**
+   - [pyproject.toml](file:///Users/jason/Desktop/DreamCode/fastbom/pyproject.toml) - 项目依赖和配置
+   - [README.md](file:///Users/jason/Desktop/DreamCode/fastbom/README.md) - 项目说明文档
+
+## 运行和部署
+
+- **开发环境**：Python 3.13+，通过`poetry install`安装依赖
+- **本地运行**：`python demo1.py`（或其他demo文件）
+- **打包部署**：使用[build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py)脚本打包为独立可执行文件
+
+FastBOM项目是一个专注于制造业工程文件自动分类的实用工具，通过简单的三步操作即可完成复杂的BOM表驱动文件分类任务，极大地提高了工作效率。

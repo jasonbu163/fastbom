@@ -1,17 +1,85 @@
-我现在想用nicegui做一个软件。大概功能描述为，通过一个bom表，快速将plm拉到本地的所有工程文件进行分类。
+# FastBOM
 
-需求描述：
-一级目录为材质，二级目录为厚度，原始文件复制到二级目录下并且文件名加上数量标注。
-一级目录和二级目录的生成逻辑为：找到bom中一个叫做材料的列，找到类似“A3板 T=10”或“A3板T=10”的行（由于bom表制作的时候填写不太规范材质和厚度参数中间可能有空格，但是固定是“*板”为材质一级目录的命名，“T=10”为材质的厚度命名），最后将原始文件复制到二级目录下，并加上数量标注。
-原始文件的文件名会和bom表中对应字段进行匹配，这个就在第二步进行列选择校准匹配文件名称。
+## Project Overview
+FastBOM is a desktop application developed based on NiceGUI, specifically designed to intelligently categorize and organize engineering files exported from PLM systems according to BOM (Bill of Materials) tables. The tool can parse material description fields that are irregular but follow patterns, achieving automated directory structure generation and file renaming with copying.
 
-示例：
-/A3板/10/(1)原始文件.pdf
+## Core Features
 
-操作步骤设计：
-第一步 - 初始化三个目录。第一个目录为存放bom表的目录，第二个目录为源文件目录，第三个目录为输出分类的目标目录。
-第二步 - 根据bom的excel表列category列进行分类，并生成一个配置文件。
-第三步 - 根据配置文件进行分类。点击开始整理按钮，并且显示整理进度。
-界面也是分三步走去引导用户。
+1. **Directory Initialization Function**
+   - Automatically creates three working directories: BOM table storage directory, source file directory, and classification result output directory
+   - Provides one-click function to open working directory, making it convenient for users to operate
 
-复杂吗？应该如何实现？你有什么方案？
+2. **Intelligent BOM Table Parsing**
+   - Intelligent detection of header position (able to identify even when headers are not in the first row)
+   - Parses material column content, identifying material and thickness information in formats like "XX板 T=number" or "XX板T=number"
+   - Supports Excel file formats (.xlsx and .xls)
+
+3. **Column Mapping Configuration**
+   - Allows users to customize mapping of part number column, material column, thickness column, and quantity column in BOM tables
+   - Provides automatic matching suggestions (automatically selects based on keywords in column names)
+
+4. **File Classification Execution**
+   - Classifies source files to `/material/thickness/(quantity)original_file.pdf` directory structure based on BOM table information
+   - Supports fuzzy matching of file names, increasing matching success rate
+   - Displays processing progress and log information in real-time
+
+## Project Features
+
+1. **User-friendly Interface**
+   - Three-step guided interface: Set directories → Parse BOM and configure mapping → Execute classification and display progress
+   - Modern UI interface built with NiceGUI, simple and intuitive operation
+
+2. **Strong Fault Tolerance**
+   - Supports spacing differences in material fields (both "A3板 T=10" and "A3板T=10" can be recognized)
+   - Intelligent header detection function, adaptable to different BOM table formats
+   - Supports cross-platform operation (Windows, macOS, Linux)
+
+3. **Efficient Processing Capability**
+   - Asynchronous processing mechanism to avoid interface freezing
+   - Batch file processing to improve work efficiency
+   - Real-time progress feedback for users to understand processing status
+
+4. **Flexible Configuration**
+   - Customizable column mapping relationships to adapt to different BOM table formats
+   - Supports different types of material and thickness naming rules
+
+## Tech Stack
+
+1. **Frontend Framework**
+   - [NiceGUI](https://github.com/zauberzeug/nicegui) - Python Web GUI framework for building user interfaces
+
+2. **Data Processing**
+   - [pandas](https://pandas.pydata.org/) - Used for processing Excel files and data tables
+   - [openpyxl](https://openpyxl.readthedocs.io/) - Excel file read/write support
+   - [xlrd](https://xlrd.readthedocs.io/) - Legacy Excel file support
+
+3. **Packaging Tools**
+   - [PyInstaller](https://pyinstaller.org/) - Used to package Python applications as standalone executable files
+   - [pywebview](https://pywebview.flowrl.com/) - Used to create native window applications
+
+4. **Other Dependencies**
+   - [psutil](https://psutil.readthedocs.io/) - System and process monitoring tools
+   - Python standard libraries (os, shutil, re, asyncio, pathlib, etc.)
+
+## Project Structure
+
+1. **Main Functional Modules**
+   - [demo1.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo1.py) - Basic version of BOM classification tool
+   - [demo2.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo2.py) - Enhanced version with intelligent header detection
+   - [demo3.py](file:///Users/jason/Desktop/DreamCode/fastbom/demo3.py) - Most complete version with additional optimization features
+
+2. **Tool Modules**
+   - [build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py) - Project packaging script for packaging applications as executable files
+   - [file_maker.py](file:///Users/jason/Desktop/DreamCode/fastbom/file_maker.py) - File generation tool (possibly for testing)
+
+3. **Configuration Files**
+   - [pyproject.toml](file:///Users/jason/Desktop/DreamCode/fastbom/pyproject.toml) - Project dependencies and configuration
+   - [README.md](file:///Users/jason/Desktop/DreamCode/fastbom/README.md) - Project documentation
+
+## Running and Deployment
+
+- **Development Environment**: Python 3.13+, install dependencies with `poetry install`
+- **Local Run**: `python demo1.py` (or other demo files)
+- **Packaging Deployment**: Use [build.py](file:///Users/jason/Desktop/DreamCode/fastbom/build.py) script to package as standalone executable file
+
+FastBOM is a practical tool focused on automated classification of manufacturing engineering files. Through simple three-step operations, complex BOM table-driven file classification tasks can be completed, greatly improving work efficiency.
