@@ -144,12 +144,12 @@ def build_with_nicegui_pack(main_script='main.py', app_name='MyNiceGUIApp', onef
 if __name__ == '__main__':
     # 配置参数 - 根据您的需求修改这些值
     CONFIG = {
-        'main_script': 'demo3.py',      # 您的主程序文件
+        'main_script': 'run.py',      # 您的主程序文件
         'app_name': 'FastBom',    # 生成的exe名称
         'onefile': True,               # 是否打包为单个exe文件
         'windowed': True,              # 是否隐藏控制台窗口
         'icon_path': './static/efficacy_researching_settings_icon_152066.ico',             # 图标文件路径，如 'app.ico'
-        'prefer_nicegui_pack': True,  # 是否优先使用 nicegui-pack
+        'prefer_nicegui_pack': False,  # 是否优先使用 nicegui-pack
     }
     
     # 安装依赖

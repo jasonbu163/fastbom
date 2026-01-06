@@ -53,7 +53,7 @@ class DXFProcessor:
             copy_count = 0
             base_offset = 100
             
-            for i in range(1, num + 1):
+            for i in range(1, num):
                 offset_x = i * base_offset
                 offset_y = i * base_offset
                 
@@ -502,12 +502,12 @@ def handle_shutdown():
 
 app.on_shutdown(handle_shutdown)
 
-ui.run(
-    title='BOM智能分类助手 + DXF处理器',
-    native=True,
-    window_size=(1000, 900),
-    favicon='🎯',
-    port=8765,
-    reload=False,
-    show=False
-)
+# ui.run(
+#     title='BOM智能分类助手 + DXF处理器',
+#     native=True,
+#     window_size=(1000, 900),
+#     favicon='🎯',
+#     port=8765,
+#     reload=False,
+#     show=False
+# )
