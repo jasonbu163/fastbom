@@ -1,4 +1,4 @@
-from src.demo5 import ui
+from src.demo6 import ui
 
 if __name__ in {'__main__', '__mp_main__'}:
     ui.run(

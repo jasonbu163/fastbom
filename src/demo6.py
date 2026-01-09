@@ -234,7 +234,7 @@ BOM智能分类工具使用指南
         return None, None
     
     async def run_classification(self, config: dict, progress: ui.linear_progress, log: ui.log):
-        """执行分类任务"""
+        """执行分类任务 - 优化版：复制所有同名不同后缀的文件"""
         if not self.bom_file:
             ui.notify("❌ 请先加载BOM表头", type='negative')
             return
@@ -254,15 +254,24 @@ BOM智能分类工具使用指南
             df = df.dropna(how='all')
             
             # 构建源文件字典：按文件名(不含扩展名)分组
-            source_files = {f.name: f for f in self.src_dir.rglob('*') if f.is_file()}
-
-            log.push(f"📁 源文件数量: {len(source_files)}")
+            source_files_dict = {}
+            for f in self.src_dir.rglob('*'):
+                if f.is_file():
+                    stem = f.stem  # 文件名（不含扩展名）
+                    if stem not in source_files_dict:
+                        source_files_dict[stem] = []
+                    source_files_dict[stem].append(f)
             
-            if not source_files:
+            log.push(f"📁 源文件组数量: {len(source_files_dict)}")
+            log.push(f"📁 总文件数量: {sum(len(files) for files in source_files_dict.values())}")
+            
+            if not source_files_dict:
                 ui.notify("⚠️ 源文件目录为空", type='warning')
                 return
             
-            success_count = 0                                                                                   
+            success_count = 0
+            file_copy_count = 0
+            skipped_count = 0
             total_rows = len(df)
             
             for idx in range(total_rows):
@@ -277,42 +286,56 @@ BOM智能分类工具使用指南
                 
                 # 解析材料和厚度
                 material, thickness = self.parse_material(material_raw)
-                if not material:
-                    material = material_raw if material_raw != 'nan' else "未分类材质"
-                if not thickness:
-                    thickness = "未知厚度"
+                if not material or not thickness:
+                    skipped_count += 1
+                    log.push(f"⏭️ 跳过 [{part_name}] - 材料格式不符合要求")
+                    continue
                 
-                found_file = None
-                for filename, filepath in source_files.items():
-                    if part_name in filename:
-                        found_file = filepath
+                # 查找匹配的文件（支持部分匹配）
+                found_files = []
+                for file_stem, file_list in source_files_dict.items():
+                    if part_name in file_stem or file_stem in part_name:
+                        found_files.extend(file_list)
                         break
                 
-                if found_file:
+                if found_files:
                     try:
                         dest_dir = self.out_dir / material / thickness
                         dest_dir.mkdir(parents=True, exist_ok=True)
                         
                         qty_prefix = quantity if quantity != 'nan' else '1'
-                        new_name = f"({qty_prefix}){found_file.name}"
-                        dest_file = dest_dir / new_name
                         
-                        shutil.copy2(found_file, dest_file)
+                        # 复制所有同名不同后缀的文件
+                        copied_files = []
+                        for found_file in found_files:
+                            new_name = f"({qty_prefix}){found_file.name}"
+                            dest_file = dest_dir / new_name
+                            
+                            shutil.copy2(found_file, dest_file)
+                            copied_files.append(found_file.name)
+                            file_copy_count += 1
+                        
                         success_count += 1
-                        log.push(f"✅ [{success_count}] {part_name} → {material}/{thickness}/")
+                        files_str = ", ".join(copied_files)
+                        log.push(f"✅ [{success_count}] {part_name} → {material}/{thickness}/ ({len(copied_files)}个文件)")
+                        log.push(f"    文件: {files_str}")
                         
                     except Exception as e:
                         log.push(f"❌ {part_name} - 复制失败: {str(e)}")
+                else:
+                    log.push(f"⚠️ 未找到文件: {part_name}")
                 
                 progress.set_value((idx + 1) / total_rows)
                 if idx % 5 == 0:
                     await asyncio.sleep(0.01)
             
             log.push("\n" + "=" * 60)
-            log.push(f"🎉 分类完成！成功归档: {success_count} 个文件")
+            log.push(f"🎉 分类完成！")
+            log.push(f"   ✅ 成功归档: {success_count} 组文件 (共 {file_copy_count} 个文件)")
+            log.push(f"   ⏭️ 跳过: {skipped_count} 行 (材料格式不符)")
             log.push("=" * 60)
             
-            ui.notify(f"🎉 分类完成！", type='positive')
+            ui.notify(f"🎉 分类完成！归档 {success_count} 组 {file_copy_count} 个文件", type='positive')
             self._open_folder(self.out_dir)
                 
         except Exception as e:
