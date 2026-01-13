@@ -9,16 +9,10 @@ import psutil
 
 import pandas as pd
 from nicegui import ui, app
-from ezdxf.filemanagement import readfile
-from ezdxf import zoom
-
-# DXF处理模块
-# try:
-#     import ezdxf
-#     from ezdxf import zoom
-#     DXF_AVAILABLE = True
-# except ImportError:
-#     DXF_AVAILABLE = False
+from ezdxf import zoom, addons
+from ezdxf.filemanagement import readfile, new
+from ezdxf.bbox import extents
+from ezdxf.math import Vec3
 
 
 class DXFProcessor:
@@ -27,8 +21,6 @@ class DXFProcessor:
     @staticmethod
     def process_dxf_file(file_path: Path, num: int, output_dir: Path) -> Tuple[bool, str]:
         """处理DXF文件：复制图层0中的模型指定次数"""
-        # if not DXF_AVAILABLE:
-        #     return False, "❌ 未安装ezdxf库，请运行: pip install ezdxf"
         
         try:
             # 读取DXF文件
@@ -81,53 +73,6 @@ class DXFProcessor:
             except Exception as text_err:
                 print(f"插入文字提示: {text_err}") # 插入文字失败不应中断主流程
             
-            # 复制实体
-            # copy_count = 0
-            # base_offset = 100
-            
-            # for i in range(1, num):
-            #     offset_x = i * base_offset
-            #     offset_y = i * base_offset
-                
-            #     for entity in layer_0_entities:
-            #         try:
-            #             if entity.dxftype() == 'LINE':
-            #                 msp.add_line(
-            #                     start=(entity.dxf.start[0] + offset_x, entity.dxf.start[1] + offset_y),
-            #                     end=(entity.dxf.end[0] + offset_x, entity.dxf.end[1] + offset_y),
-            #                     dxfattribs={'layer': '0'}
-            #                 )
-            #             elif entity.dxftype() == 'CIRCLE':
-            #                 msp.add_circle(
-            #                     center=(entity.dxf.center[0] + offset_x, entity.dxf.center[1] + offset_y),
-            #                     radius=entity.dxf.radius,
-            #                     dxfattribs={'layer': '0'}
-            #                 )
-            #             elif entity.dxftype() == 'LWPOLYLINE':
-            #                 points = [(p[0] + offset_x, p[1] + offset_y) for p in entity.get_points()]
-            #                 msp.add_lwpolyline(points, dxfattribs={'layer': '0'})
-            #             elif entity.dxftype() == 'TEXT':
-            #                 msp.add_text(
-            #                     entity.dxf.text,
-            #                     dxfattribs={
-            #                         'layer': '0',
-            #                         'insert': (entity.dxf.insert[0] + offset_x, entity.dxf.insert[1] + offset_y),
-            #                         'height': entity.dxf.height
-            #                     }
-            #                 )
-            #             else:
-            #                 new_entity = entity.copy()
-            #                 if hasattr(new_entity.dxf, 'insert'):
-            #                     new_entity.dxf.insert = (
-            #                         new_entity.dxf.insert[0] + offset_x,
-            #                         new_entity.dxf.insert[1] + offset_y
-            #                     )
-            #                 msp.add_entity(new_entity)
-                        
-            #             copy_count += 1
-            #         except Exception as e:
-            #             continue
-            
             # 保存文件
             zoom.extents(msp)
             output_file = output_dir / f"processed_{file_path.name}"
@@ -138,6 +83,96 @@ class DXFProcessor:
             
         except Exception as e:
             return False, f"❌ 处理失败: {str(e)}"
+
+    @staticmethod
+    def merge_directory_to_dxf(input_dir: str):
+        input_path = Path(input_dir)
+        if not input_path.is_dir():
+            print(f"❌ 错误: {input_dir} 不是有效的目录")
+            return
+
+        # 1. 创建新的目标 DXF 文件
+        merged_doc = new()
+        merged_msp = merged_doc.modelspace()
+        
+        # 获取目录下所有 dxf 文件
+        dxf_files = list(input_path.glob("*.dxf"))
+        if not dxf_files:
+            print(f"⚠️ 文件夹内没有 DXF 文件")
+            return
+
+        current_x_offset = 0
+        spacing = 50  # 每个模型之间的间距
+        
+        print(f"🚀 开始合并目录: {input_path.name}，共 {len(dxf_files)} 个文件")
+
+        for dxf_file in dxf_files:
+            try:
+                # 2. 读取源文件
+                source_doc = readfile(str(dxf_file))
+                source_msp = source_doc.modelspace()
+                
+                # 3. 计算源文件的包围盒（确定大小）
+                # 只获取图层 '0' 的实体，或根据需要修改
+                entities = source_msp.query('*') 
+                if not entities:
+                    continue
+                    
+                bbox = extents(entities)
+                if not bbox.has_data:
+                    continue
+
+                # 计算偏移量：将模型左下角对齐到 (current_x_offset, 0)
+                offset = Vec3(current_x_offset - bbox.extmin.x, -bbox.extmin.y, 0)
+                
+                # 4. 插入文件名标注
+                file_label = dxf_file.stem
+                text_height = max((bbox.extmax.y - bbox.extmin.y) * 0.05, 5.0) # 动态字号
+                merged_msp.add_text(
+                    file_label, 
+                    dxfattribs={'height': text_height, 'layer': '0'}
+                ).set_placement((current_x_offset, bbox.extmax.y - bbox.extmin.y + text_height))
+
+                # 5. 将实体复制并移动到新文件
+                # importer 负责处理不同文件间的资源（如图层、线型）合并
+                importer = addons.importer.Importer(source_doc, merged_doc)
+                importer.import_entities(entities)
+                
+                # 移动刚刚导入的实体
+                for entity in entities:
+                    # 注意：importer 会保持原始引用，我们需要对导入后的实体进行位移
+                    # 这里的逻辑简写了，实际上 ezdxf 的 importer 会返回新生成的实体
+                    pass 
+                
+                # 更稳妥的办法：直接对目标位置进行矩阵变换
+                for entity in merged_msp.query('*'):
+                    # 这里需要区分哪些是刚进来的，建议用下面的简易版逻辑或 Block 形式
+                    pass
+
+                # --- 核心逻辑：使用矩阵平移整个模型 ---
+                # 为了简单起见，我们直接在读取时处理或使用“块”
+                # 以下是更推荐的“块插入”写法，能完美解决重叠和移动问题：
+                
+                block_name = dxf_file.stem.replace(" ", "_")
+                new_block = merged_doc.blocks.new(name=block_name)
+                importer.import_entities(entities, target_layout=new_block)
+                importer.finalize()
+
+                # 将块插入到指定位置
+                merged_msp.add_blockref(block_name, (current_x_offset, 0))
+                
+                # 更新下一个模型的 X 轴偏移量
+                current_x_offset += (bbox.extmax.x - bbox.extmin.x) + spacing
+
+                print(f"✅ 已加入: {dxf_file.name}")
+
+            except Exception as e:
+                print(f"❌ 处理 {dxf_file.name} 失败: {e}")
+
+        # 6. 保存最终文件
+        output_file = input_path.parent / f"{input_path.name}.dxf"
+        merged_doc.saveas(str(output_file))
+        print(f"\n✨ 完成！合并后的文件保存在: {output_file}")
 
 
 class BOMClassifier:
@@ -377,9 +412,6 @@ BOM智能分类工具使用指南
     
     async def process_dxf_files(self, config: dict, progress: ui.linear_progress, log: ui.log):
         """处理DXF文件（第四步）"""
-        # if not DXF_AVAILABLE:
-        #     ui.notify("❌ 请先安装ezdxf: pip install ezdxf", type='negative')
-        #     return
         
         if not self.bom_file:
             ui.notify("❌ 请先加载BOM表", type='negative')
@@ -471,37 +503,22 @@ def main_page():
         
         # 第二步：配置列映射
         with ui.card().classes('w-full p-6 bg-white shadow-xl'):
+
             with ui.row().classes('w-full items-center gap-4'):
                 ui.icon('settings', size='2.5rem').classes('text-orange-600')
                 ui.label('第二步：智能识别表头').classes('text-2xl font-bold')
-            
             def update_headers():
                 if classifier.load_bom_headers():
-                    header_info.text = f"✨ 检测到表头在第 {classifier.header_row + 1} 行"
-                    sel_part.options = classifier.headers
-                    sel_mat.options = classifier.headers
-                    sel_qty.options = classifier.headers
-                    
-                    for h in classifier.headers:
-                        h_lower = h.lower()
-                        if any(kw in h_lower for kw in ['图号', '旧图号', '零件', '名称', 'part']):
-                            sel_part.value = h
-                            config['part'] = h
-                        if any(kw in h_lower for kw in ['材料', '材质', 'material']):
-                            sel_mat.value = h
-                            config['mat'] = h
-                        if any(kw in h_lower for kw in ['数量', 'qty', 'quantity']):
-                            sel_qty.value = h
-                            config['qty'] = h
-            
-            ui.button('🔍 智能加载BOM表头', on_click=update_headers, icon='refresh').props('size=md color=orange-6').classes('w-full')
-            header_info = ui.label('').classes('text-sm text-gray-500')
-            
-            ui.separator().classes('my-4')
+                    config['part'] = '图号'
+                    config['mat'] = '材料'
+                    config['qty'] = '总数量'
+
+            update_headers()
+
             with ui.grid(columns=3).classes('w-full gap-4'):
-                sel_part = ui.select(label='📋 零件号列 *', options=[]).classes('w-full').bind_value(config, 'part')
-                sel_mat = ui.select(label='🔧 材质列 *', options=[]).classes('w-full').bind_value(config, 'mat')
-                sel_qty = ui.select(label='🔢 数量列 *', options=[]).classes('w-full').bind_value(config, 'qty')
+                ui.label(f'📋 零件号列 * {config['part']}').classes('w-full')
+                ui.label(f'🔧 材质列 * {config['mat']}').classes('w-full')
+                ui.label(f'🔢 数量列 * {config['qty']}').classes('w-full')
         
         # 第三步：执行分类
         with ui.card().classes('w-full p-6 bg-white shadow-xl'):
@@ -523,9 +540,6 @@ def main_page():
             with ui.row().classes('w-full items-center gap-4'):
                 ui.icon('architecture', size='2.5rem').classes('text-purple-600')
                 ui.label('第四步：DXF智能复制').classes('text-2xl font-bold')
-            
-            # if not DXF_AVAILABLE:
-            #     ui.label('⚠️ 未安装ezdxf库，请运行: pip install ezdxf').classes('text-red-600 mb-2')
             
             ui.markdown(
                 """
