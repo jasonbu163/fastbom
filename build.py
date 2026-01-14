@@ -88,9 +88,9 @@ def build_app():
         cmd.extend(['--add-data', f'static{os.pathsep}static'])
     
     # 排除不需要的模块
-    exclude = ['matplotlib', 'scipy', 'PIL', 'tkinter', 'test', 'unittest']
-    for mod in exclude:
-        cmd.extend(['--exclude-module', mod])
+    # exclude = ['matplotlib', 'scipy', 'PIL', 'tkinter', 'test', 'unittest']
+    # for mod in exclude:
+    #     cmd.extend(['--exclude-module', mod])
     
     cmd.append(MAIN_SCRIPT)
     
