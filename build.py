@@ -1,189 +1,164 @@
-# build.py - NiceGUI 应用打包脚本
+# build.py - FastBom 应用打包脚本
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-def install_dependencies():
-    """检查并安装必要的依赖包"""
-    dependencies = ['pyinstaller']
-    
-    # 检查是否安装了 pywebview（如果使用 native=True 则需要）
+def check_pyinstaller():
+    """检查 PyInstaller 是否安装"""
     try:
-        import webview
+        import PyInstaller
+        print(f"✓ PyInstaller 已安装 (版本 {PyInstaller.__version__})")
+        return True
     except ImportError:
-        print("提示：如果您计划使用 ui.run(native=True)，请先安装 pywebview：")
-        print("pip install pywebview")
-    
-    for package in dependencies:
-        try:
-            __import__(package.replace('-', '_'))
-            print(f"✓ 已安装 {package}")
-        except ImportError:
-            print(f"正在安装缺失的依赖: {package}")
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+        print("✗ PyInstaller 未安装")
+        install = input("是否自动安装 PyInstaller？(y/n): ").strip().lower()
+        if install == 'y':
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pyinstaller'])
+            return True
+        return False
 
-def build_with_pyinstaller(main_script='main.py', app_name='MyNiceGUIApp', onefile=True, windowed=True, icon_path=None):
-    """
-    使用 PyInstaller 打包 NiceGUI 应用
+def build_app():
+    """打包 FastBom 应用"""
     
-    参数:
-        main_script: 主程序文件路径
-        app_name: 生成的应用程序名称
-        onefile: 是否打包为单文件
-        windowed: 是否隐藏控制台窗口
-        icon_path: 图标文件路径(.ico)
-    """
+    # ============ 配置区域 ============
+    MAIN_SCRIPT = 'main.py'
+    APP_NAME = 'FastBom'
+    ICON_PATH = 'static/efficacy_researching_settings_icon_152066.ico'
+    ONEFILE = True      # True=单exe文件, False=文件夹形式
+    WINDOWED = True     # True=隐藏控制台, False=显示控制台(调试时用False)
+    # ==================================
     
-    # 获取 nicegui 包的路径
-    import nicegui
+    print("\n" + "=" * 60)
+    print(f"FastBom 应用打包工具")
+    print("=" * 60)
+    
+    # 检查主文件
+    if not os.path.exists(MAIN_SCRIPT):
+        print(f"❌ 错误: 未找到主文件 {MAIN_SCRIPT}")
+        return False
+    print(f"✓ 主文件: {MAIN_SCRIPT}")
+    
+    # 检查图标
+    if os.path.exists(ICON_PATH):
+        print(f"✓ 图标文件: {ICON_PATH}")
+    else:
+        print(f"⚠ 未找到图标文件，将使用默认图标")
+        ICON_PATH = None
     
     # 构建 PyInstaller 命令
     cmd = [
         'pyinstaller',
-        main_script,
-        '--name', app_name,
-        '--clean',  # 清理临时文件
+        '--clean',
+        '--name', APP_NAME,
     ]
     
-    # 添加常用参数
-    if onefile:
+    # 打包模式
+    if ONEFILE:
         cmd.append('--onefile')
+        print(f"✓ 打包模式: 单文件")
+    else:
+        cmd.append('--onedir')
+        print(f"✓ 打包模式: 文件夹")
     
-    if windowed:
+    # 控制台模式
+    if WINDOWED:
         cmd.append('--windowed')
+        print(f"✓ 控制台: 隐藏")
+    else:
+        cmd.append('--console')
+        print(f"✓ 控制台: 显示")
     
-    if icon_path and os.path.exists(icon_path):
-        cmd.extend(['--icon', icon_path])
-        print(f"✓ 使用图标: {icon_path}")
+    # 图标
+    if ICON_PATH:
+        cmd.extend(['--icon', ICON_PATH])
     
-    # 添加 nicegui 静态资源（这是关键步骤！）
-    nicegui_path = Path(nicegui.__file__).parent
-    cmd.extend([
-        '--add-data', f'{nicegui_path}{os.pathsep}nicegui'
-    ])
-    
-    # 尝试添加 pywebview 资源（如果使用了 native=True）
-    try:
-        import webview
-        webview_path = Path(webview.__file__).parent
-        cmd.extend([
-            '--add-data', f'{webview_path}{os.pathsep}webview'
-        ])
-        print("✓ 包含 pywebview 资源")
-    except ImportError:
-        print("ℹ️ 未检测到 pywebview，跳过 webview 资源包含")
-    
-    # 添加其他可能需要的手动导入
+    # 隐藏导入（确保所有依赖都被打包）
     hidden_imports = [
-        'nicegui.elements',
-        'nicegui.elements.scene',
-        'nicegui.app',
-        'uvicorn.logging',
-        'uvicorn.loops',
-        'uvicorn.loops.auto',
+        'PySide6.QtCore',
+        'PySide6.QtGui',
+        'PySide6.QtWidgets',
+        'pandas',
+        'ezdxf',
+        'ezdxf.addons.importer',
+        'qt_material',
+        'openpyxl',  # pandas读Excel需要
     ]
     
     for imp in hidden_imports:
         cmd.extend(['--hidden-import', imp])
     
-    print("=" * 50)
-    print("开始打包，请稍候...")
-    print(f"主程序: {main_script}")
-    print(f"应用名称: {app_name}")
-    print(f"单文件模式: {onefile}")
-    print(f"隐藏控制台: {windowed}")
-    print("=" * 50)
+    # 添加 qt-material 主题文件
+    try:
+        import qt_material
+        qt_material_path = Path(qt_material.__file__).parent
+        cmd.extend(['--add-data', f'{qt_material_path}{os.pathsep}qt_material'])
+        print(f"✓ 包含 qt-material 主题")
+    except ImportError:
+        print(f"⚠ 未检测到 qt-material，跳过主题打包")
     
-    # 执行打包命令
+    # 添加静态资源文件夹（如果存在）
+    if os.path.exists('static'):
+        cmd.extend(['--add-data', f'static{os.pathsep}static'])
+        print(f"✓ 包含 static 文件夹")
+    
+    # 排除不需要的模块（减小体积）
+    exclude = ['matplotlib', 'scipy', 'PIL', 'tkinter', 'test', 'unittest']
+    for mod in exclude:
+        cmd.extend(['--exclude-module', mod])
+    
+    # 添加主脚本
+    cmd.append(MAIN_SCRIPT)
+    
+    # 开始打包
+    print("\n" + "=" * 60)
+    print("正在打包，请稍候...")
+    print("=" * 60 + "\n")
+    
     try:
         subprocess.run(cmd, check=True)
-        print("🎉 打包完成！")
-        print(f"可执行文件位置: ./dist/{app_name}.exe")
         
-        # 显示后续步骤提示
-        print("\n" + "=" * 50)
-        print("📋 打包后注意事项:")
-        print("1. 建议在干净的虚拟环境中打包以减少文件大小")
-        print("2. 首次运行前，可在命令行中测试: ./dist/{}.exe".format(app_name))
-        print("3. 如果遇到静态资源错误，请确认 --add-data 参数正确包含 nicegui 路径")
+        # 打包成功
+        print("\n" + "=" * 60)
+        print("🎉 打包成功！")
+        print("=" * 60)
         
-    except subprocess.CalledProcessError as e:
-        print(f"❌ 打包过程出错: {e}")
-        return False
-    except FileNotFoundError:
-        print("❌ 未找到 PyInstaller，请先安装: pip install pyinstaller")
-        return False
-    
-    return True
-
-def build_with_nicegui_pack(main_script='main.py', app_name='MyNiceGUIApp', onefile=True, icon_path=None):
-    """
-    使用 nicegui-pack 打包（官方推荐方式）
-    """
-    try:
-        cmd = ['nicegui-pack']
+        if ONEFILE:
+            exe_path = f"dist/{APP_NAME}.exe"
+        else:
+            exe_path = f"dist/{APP_NAME}/{APP_NAME}.exe"
         
-        if onefile:
-            cmd.append('--onefile')
+        print(f"\n📦 可执行文件: {exe_path}")
+        print(f"📂 文件大小: {os.path.getsize(exe_path) / (1024*1024):.1f} MB")
         
-        if icon_path:
-            cmd.extend(['--icon', icon_path])
+        print("\n💡 使用提示:")
+        print("1. 直接双击运行 exe 文件")
+        print("2. 首次分发给他人时，建议先测试运行")
+        print("3. 如果遇到问题，可以修改 WINDOWED=False 查看控制台错误")
         
-        cmd.extend(['--name', app_name, main_script])
-        
-        print("使用 nicegui-pack 打包...")
-        subprocess.run(cmd, check=True)
-        print("🎉 nicegui-pack 打包完成！")
         return True
         
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("❌ nicegui-pack 打包失败或未安装，尝试使用 PyInstaller 方式")
+    except subprocess.CalledProcessError:
+        print("\n❌ 打包失败！")
+        print("\n💡 调试建议:")
+        print("1. 设置 WINDOWED = False 查看详细错误")
+        print("2. 设置 ONEFILE = False 使用文件夹模式（更稳定）")
+        print("3. 确保所有依赖都已正确安装")
         return False
 
 if __name__ == '__main__':
-    # 配置参数 - 根据您的需求修改这些值
-    CONFIG = {
-        'main_script': 'run.py',      # 您的主程序文件
-        'app_name': 'FastBom',    # 生成的exe名称
-        'onefile': True,               # 是否打包为单个exe文件
-        'windowed': True,              # 是否隐藏控制台窗口
-        'icon_path': './static/efficacy_researching_settings_icon_152066.ico',             # 图标文件路径，如 'app.ico'
-        'prefer_nicegui_pack': False,  # 是否优先使用 nicegui-pack
-    }
+    print("FastBom 打包工具 v1.0\n")
     
-    # 安装依赖
-    install_dependencies()
-    
-    # 检查主文件是否存在
-    if not os.path.exists(CONFIG['main_script']):
-        print(f"❌ 错误: 未找到主文件 {CONFIG['main_script']}")
-        print("请确保在正确的目录中运行此脚本，或修改 CONFIG 中的 main_script")
+    # 检查 PyInstaller
+    if not check_pyinstaller():
+        print("❌ 缺少 PyInstaller，无法继续")
         sys.exit(1)
     
     # 执行打包
-    success = False
-    
-    # 优先使用 nicegui-pack（如果配置且可用）
-    if CONFIG['prefer_nicegui_pack']:
-        success = build_with_nicegui_pack(
-            CONFIG['main_script'],
-            CONFIG['app_name'],
-            CONFIG['onefile'],
-            CONFIG['icon_path']
-        )
-    
-    # 如果 nicegui-pack 不可用或失败，使用 PyInstaller
-    if not success:
-        success = build_with_pyinstaller(
-            CONFIG['main_script'],
-            CONFIG['app_name'],
-            CONFIG['onefile'],
-            CONFIG['windowed'],
-            CONFIG['icon_path']
-        )
+    success = build_app()
     
     if success:
-        print("\n✅ 打包流程完成！")
+        print("\n✅ 打包流程完成！\n")
     else:
-        print("\n❌ 打包失败，请检查错误信息")
+        print("\n❌ 打包失败，请检查错误信息\n")
+        sys.exit(1)
