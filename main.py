@@ -1,17 +1,21 @@
-# from src.demo7 import ui
+# main.py
+import sys
+from PySide6.QtWidgets import QApplication
+from qt_material import apply_stylesheet
 
-# if __name__ in {'__main__', '__mp_main__'}:
-#     ui.run(
-#         title='BOM智能分类助手 + DXF处理器',
-#         native=True,
-#         window_size=(1000, 900),
-#         favicon='🎯',
-#         port=8765,
-#         # reload=False,
-#         show=False
-#     )
+from gui.main_window import MainWindow
 
-from src.demo10 import main
+def main():
+    """主函数"""
+    app = QApplication(sys.argv)
+    
+    apply_stylesheet(app, theme="dark_teal.xml")
+    
+    window = MainWindow()
+    window.show()
+    
+    sys.exit(app.exec())
 
-if __name__ in {'__main__', '__mp_main__'}:
+
+if __name__ == '__main__':
     main()

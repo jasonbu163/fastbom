@@ -1,0 +1,163 @@
+2026-01-15 16:14:06.475 | INFO     | 29304:21264 | core.sw_converter:_initialize_template_dir:27 - 程序目录: D:\Github\fastbom
+2026-01-15 16:14:06.895 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-01 大卷板.SLDDRW
+2026-01-15 16:14:06.900 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-01 大卷板.SLDDRW
+2026-01-15 16:14:24.621 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-01 大卷板 - 图纸1
+2026-01-15 16:14:28.783 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 4 个视图使用图纸比例
+2026-01-15 16:14:28.784 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:14:28.785 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:14:28.978 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:14:29.583 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:14:29.584 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:14:39.538 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-02 外壳折弯板A.SLDDRW
+2026-01-15 16:14:39.539 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-02 外壳折弯板A.SLDDRW
+2026-01-15 16:14:56.382 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-02 外壳折弯板A - 图纸1
+2026-01-15 16:15:02.093 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 5 个视图使用图纸比例
+2026-01-15 16:15:02.094 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:15:02.095 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:15:02.279 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:15:02.731 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.420 x 0.297
+2026-01-15 16:15:02.733 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a3图纸格式.slddrt
+2026-01-15 16:15:16.560 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-03 折弯板.SLDDRW
+2026-01-15 16:15:16.563 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-03 折弯板.SLDDRW
+2026-01-15 16:15:34.659 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-03 折弯板 - 图纸1
+2026-01-15 16:15:39.419 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 3 个视图使用图纸比例
+2026-01-15 16:15:39.421 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:15:39.422 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:15:39.667 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:15:40.087 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:15:40.089 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:15:51.082 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-04 折弯板.SLDDRW
+2026-01-15 16:15:51.098 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-04 折弯板.SLDDRW
+2026-01-15 16:16:13.551 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-04 折弯板 - 图纸1
+2026-01-15 16:16:18.684 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 4 个视图使用图纸比例
+2026-01-15 16:16:18.685 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:16:18.687 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:16:18.914 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:16:19.458 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:16:19.469 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:16:36.918 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-05 折弯板.SLDDRW
+2026-01-15 16:16:36.923 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-05 折弯板.SLDDRW
+2026-01-15 16:16:52.086 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-05 折弯板 - 图纸1
+2026-01-15 16:16:55.022 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 3 个视图使用图纸比例
+2026-01-15 16:16:55.023 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:16:55.024 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:16:55.136 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:16:55.674 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:16:55.675 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:17:03.743 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-06 折弯板.SLDDRW
+2026-01-15 16:17:03.745 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-06 折弯板.SLDDRW
+2026-01-15 16:17:17.675 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-06 折弯板 - 图纸1
+2026-01-15 16:17:21.793 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 5 个视图使用图纸比例
+2026-01-15 16:17:21.795 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:17:21.797 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:17:21.990 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:17:22.446 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:17:22.447 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:17:35.544 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-07 外壳折弯板B.SLDDRW
+2026-01-15 16:17:35.547 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-07 外壳折弯板B.SLDDRW
+2026-01-15 16:17:53.333 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-07 外壳折弯板B - 图纸1
+2026-01-15 16:17:59.040 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 5 个视图使用图纸比例
+2026-01-15 16:17:59.041 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:17:59.042 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:17:59.228 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:17:59.604 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.420 x 0.297
+2026-01-15 16:17:59.605 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a3图纸格式.slddrt
+2026-01-15 16:18:11.318 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-08 锥斗筋板.SLDDRW
+2026-01-15 16:18:11.323 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-08 锥斗筋板.SLDDRW
+2026-01-15 16:18:21.332 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-08 锥斗筋板 - 图纸1
+2026-01-15 16:18:23.935 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 2 个视图使用图纸比例
+2026-01-15 16:18:23.936 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:18:23.937 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:18:24.131 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:18:24.654 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:18:24.655 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:18:32.487 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-10 接线位下托盘.SLDDRW
+2026-01-15 16:18:32.492 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-10 接线位下托盘.SLDDRW
+2026-01-15 16:18:44.596 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-10 接线位下托盘 - 图纸1
+2026-01-15 16:18:47.609 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 4 个视图使用图纸比例
+2026-01-15 16:18:47.612 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:18:47.613 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:18:47.805 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:18:48.348 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:18:48.349 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:18:57.306 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-11 线口折弯板.SLDDRW
+2026-01-15 16:18:57.309 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-11 线口折弯板.SLDDRW
+2026-01-15 16:18:57.767 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-11 线口折弯板 - 图纸1
+2026-01-15 16:19:02.534 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 4 个视图使用图纸比例
+2026-01-15 16:19:02.536 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:19:02.537 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:19:04.756 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:19:05.278 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:19:05.290 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:19:26.592 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-12 下内圈.SLDDRW
+2026-01-15 16:19:26.699 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-12 下内圈.SLDDRW
+2026-01-15 16:19:51.572 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-12 下内圈 - 图纸1
+2026-01-15 16:19:58.415 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 3 个视图使用图纸比例
+2026-01-15 16:19:58.420 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:19:58.421 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:19:58.622 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:19:59.618 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:19:59.622 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:20:10.346 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-13 内锥斗.SLDDRW
+2026-01-15 16:20:10.356 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-13 内锥斗.SLDDRW
+2026-01-15 16:20:24.200 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-13 内锥斗 - 图纸1
+2026-01-15 16:20:27.297 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 3 个视图使用图纸比例
+2026-01-15 16:20:27.299 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:20:27.300 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:20:27.492 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:20:28.099 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.420 x 0.297
+2026-01-15 16:20:28.136 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a3图纸格式.slddrt
+2026-01-15 16:20:41.606 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-15 安装底板.SLDDRW
+2026-01-15 16:20:41.637 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-15 安装底板.SLDDRW
+2026-01-15 16:20:52.137 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-15 安装底板 - 图纸1
+2026-01-15 16:20:54.778 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 2 个视图使用图纸比例
+2026-01-15 16:20:54.780 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:20:54.781 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:20:54.906 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:20:55.523 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:20:55.524 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:21:03.311 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-16 封板.SLDDRW
+2026-01-15 16:21:03.316 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-16 封板.SLDDRW
+2026-01-15 16:21:15.198 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-16 封板 - 图纸1
+2026-01-15 16:21:17.863 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 2 个视图使用图纸比例
+2026-01-15 16:21:17.864 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:21:17.865 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:21:18.080 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:21:18.566 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:21:18.567 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:21:24.870 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-18 U型件.SLDDRW
+2026-01-15 16:21:24.882 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-18 U型件.SLDDRW
+2026-01-15 16:21:39.755 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-18 U型件 - 图纸1
+2026-01-15 16:21:44.502 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 4 个视图使用图纸比例
+2026-01-15 16:21:44.503 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:21:44.504 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:21:44.694 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:21:45.083 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:21:45.084 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:21:56.668 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-19 接线口长折弯板.SLDDRW
+2026-01-15 16:21:56.682 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-19 接线口长折弯板.SLDDRW
+2026-01-15 16:22:08.621 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-19 接线口长折弯板 - 图纸1
+2026-01-15 16:22:11.880 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 3 个视图使用图纸比例
+2026-01-15 16:22:11.887 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:22:11.889 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:22:12.094 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:22:12.624 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:22:12.625 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:22:23.030 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-23 外罩定位板.SLDDRW
+2026-01-15 16:22:23.040 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-23 外罩定位板.SLDDRW
+2026-01-15 16:22:33.263 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-23 外罩定位板 - 图纸1
+2026-01-15 16:22:35.906 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 2 个视图使用图纸比例
+2026-01-15 16:22:35.909 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:22:35.911 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:22:36.104 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:22:36.578 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:22:36.579 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt
+2026-01-15 16:22:43.124 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:70 - 正在处理: SC06020102.01-24 炉体检测螺纹底板.SLDDRW
+2026-01-15 16:22:43.138 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:71 - 完整路径: D:\Test_Data\SC06020102\SC06020102.01-24 炉体检测螺纹底板.SLDDRW
+2026-01-15 16:22:57.332 | INFO     | 29304:21264 | core.sw_converter:convert_to_dxf:92 - 连接到文档：SC06020102.01-24 炉体检测螺纹底板 - 图纸1
+2026-01-15 16:23:00.850 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:128 - 已设置 2 个视图使用图纸比例
+2026-01-15 16:23:00.851 | INFO     | 29304:21264 | core.sw_converter:_set_views_to_sheet_scale:129 - 设置视图比例完成
+2026-01-15 16:23:00.852 | INFO     | 29304:21264 | core.sw_converter:_replace_template:152 - 开始替换模板
+2026-01-15 16:23:00.999 | INFO     | 29304:21264 | core.sw_converter:_replace_template:160 - 模板目录: D:\Github\fastbom\template
+2026-01-15 16:23:01.943 | INFO     | 29304:21264 | core.sw_converter:_replace_template:168 - 图纸尺寸: 0.297 x 0.210
+2026-01-15 16:23:01.958 | INFO     | 29304:21264 | core.sw_converter:_replace_template:175 - 匹配图纸格式: a4图纸格式.slddrt

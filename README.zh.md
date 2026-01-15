@@ -83,3 +83,28 @@ FastBOM 是一个基于 NiceGUI 开发的桌面应用程序，专门用于根据
 - **打包部署**：使用`build.py`脚本打包为独立可执行文件
 
 FastBOM项目是一个专注于制造业工程文件自动分类的实用工具，通过简单的三步操作即可完成复杂的BOM表驱动文件分类任务，极大地提高了工作效率。
+
+# 项目结构说明
+```
+fastbom_integrated/
+├── main.py                 # 主程序入口
+├── core/
+│   ├── __init__.py
+│   ├── bom_classifier.py   # BOM分类核心逻辑
+│   ├── dxf_processor.py    # DXF处理器
+│   └── sw_converter.py     # SolidWorks转换器（新增）
+├── gui/
+│   ├── __init__.py
+│   ├── main_window.py      # 主窗口
+│   └── worker_thread.py    # 后台线程
+├── utils/
+│   ├── __init__.py
+│   ├── common.py           # 通用工具
+│   └── logger.py           # 日志工具
+├── template/               # 模板文件夹
+│   ├── GB-3.5新-小箭头.sldstd
+│   ├── a0图纸格式.slddrt
+│   └── ...
+└── static/
+    └── icon.ico            # 应用图标
+```
