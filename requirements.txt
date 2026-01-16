@@ -1,0 +1,20 @@
+# FastBOM 整合版 - 依赖清单
+
+# GUI 框架
+PySide6>=6.6.0
+
+# 数据处理
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# DXF 处理
+ezdxf>=1.1.0
+
+# SolidWorks COM 接口
+pywin32>=305
+
+# 主题（可选）
+qt-material>=2.14
+
+# 打包工具（开发时）
+pyinstaller>=6.0.0

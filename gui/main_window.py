@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
             "  • 请将BOM表（Excel）和工程图文件（SLDDRW）放在同一目录下\n"
             "  • 处理结果将保存在该目录下的 'result' 文件夹中"
         )
-        info.setStyleSheet("color: #666; padding: 10px;")
+        info.setStyleSheet("color: #c2c2c2; padding: 10px;")
         
         group_layout.addLayout(dir_layout)
         group_layout.addWidget(info)
@@ -139,7 +139,7 @@ class MainWindow(QMainWindow):
             "  2. 调用SolidWorks转换为DXF格式\n"
             "  3. 按材料和厚度自动分类存储"
         )
-        info.setStyleSheet("color: #555; padding: 5px;")
+        info.setStyleSheet("color: #c2c2c2; padding: 10px;")
         
         btn = QPushButton("🚀 开始智能处理")
         btn.clicked.connect(self._on_classify_and_convert)
@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
         
         self.log1 = QTextEdit()
         self.log1.setReadOnly(True)
-        self.log1.setMaximumHeight(200)
+        self.log1.setMinimumHeight(300) # set log minimum height
         
         group_layout.addWidget(info)
         group_layout.addWidget(btn)
@@ -164,6 +164,7 @@ class MainWindow(QMainWindow):
         group_layout = QVBoxLayout()
         
         info = QLabel("功能：在图层0下方添加文件名标注")
+        info.setStyleSheet("color: #c2c2c2; padding: 10px;")
         
         btn = QPushButton("🎨 开始处理DXF文件")
         btn.clicked.connect(self._on_process_dxf)
@@ -172,7 +173,7 @@ class MainWindow(QMainWindow):
         
         self.log2 = QTextEdit()
         self.log2.setReadOnly(True)
-        self.log2.setMaximumHeight(150)
+        self.log2.setMinimumHeight(300)
         
         group_layout.addWidget(info)
         group_layout.addWidget(btn)
@@ -188,6 +189,7 @@ class MainWindow(QMainWindow):
         group_layout = QVBoxLayout()
         
         info = QLabel("功能：将同材料、同厚度的DXF文件合并到一个文件")
+        info.setStyleSheet("color: #c2c2c2; padding: 10px;")
         
         btn = QPushButton("🔗 开始合并DXF文件")
         btn.clicked.connect(self._on_merge_dxf)
@@ -196,7 +198,7 @@ class MainWindow(QMainWindow):
         
         self.log3 = QTextEdit()
         self.log3.setReadOnly(True)
-        self.log3.setMaximumHeight(150)
+        self.log3.setMinimumHeight(300)
         
         group_layout.addWidget(info)
         group_layout.addWidget(btn)
