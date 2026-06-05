@@ -123,12 +123,14 @@ selected values through Qt's standard settings mechanism.
 - `QSettings` is the desktop application's settings store.
 - Qt chooses the platform-native backing store: Windows registry, macOS plist,
   and INI/config-style files on Linux.
-- The settings page can edit backend API URL, request timeout, default BOM
-  columns, theme, template directory, output folders, DXF parameters, and
-  related operator-facing options.
-- Optional fallback admin login values for diagnostics/bootstrap only. The
-  fallback admin username and password are stored through the settings page /
-  `QSettings`, not in tracked files.
+- The login dialog owns backend API URL and request timeout, because those
+  values are needed before the main window opens.
+- The settings page edits local workflow defaults such as BOM columns, template
+  directory, output folders, DXF parameters, SolidWorks visibility, and the
+  offline admin password.
+- The offline admin username is fixed as `admin`. Only its local password can
+  be overwritten through `QSettings`; it must not be written to tracked files
+  or logs.
 
 Recommended precedence:
 
@@ -145,15 +147,45 @@ inventing request or response shapes locally.
 Authentication rules:
 
 - Normal login credentials come from the backend API.
-- The `admin` fallback account is allowed only as an emergency/default login
+- The `admin` offline account is allowed only as an emergency/default login
   source from local Qt settings.
-- The fallback `admin` password may be stored by the desktop client in
+- The offline `admin` password may be stored by the desktop client in
   `QSettings`; it must not be written to tracked files or logs.
 - The backend's fallback highest-privilege account is not this `admin` account.
-- If the Qt client force-logs in with the fallback `admin` identity, the remote
+- If the Qt client logs in with the offline `admin` identity, the remote
   form feature must be disabled for that session.
 - Only a normal backend-authenticated user session may use the remote GET/POST
   form workflow.
+- When the main window closes after a backend-authenticated login, the client
+  should call backend logout with the current refresh token. Offline `admin`
+  sessions do not call backend logout.
+- If the offline password is forgotten, do not rebuild the app. Login with a
+  backend non-admin account and reset the offline password from the settings
+  page, or clear the local `QSettings` auth password key to fall back to the
+  built-in default.
+
+### Offline Admin Password Reset
+
+The offline account is intentionally simple and local-only:
+
+- Username is always `admin`; the UI must not allow renaming it.
+- Built-in default password is `#456@admin`.
+- The settings page only overwrites the local password when a new password is
+  entered. Leaving the password field blank keeps the current value.
+- Logging in as offline `admin` opens the desktop app but disables remote
+  material-library features.
+
+Reset paths:
+
+- If the current offline password is known, login as `admin`, open Settings,
+  enter a new offline password, and save.
+- If the offline password is forgotten but a backend non-admin account is
+  available, login with that backend account, open Settings, enter a new
+  offline password, and save.
+- If both offline login and backend login are unavailable, clear the local
+  `QSettings` key `auth.fallback_admin_password`. On the next launch, the app
+  falls back to the built-in `#456@admin` password. Rebuilding the software is
+  not required.
 
 ## Local Core Stability
 

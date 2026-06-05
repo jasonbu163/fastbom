@@ -24,7 +24,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.remote_api.base_url, "")
         self.assertEqual(settings.remote_api.timeout_seconds, 15)
         self.assertEqual(settings.auth.fallback_admin_username, "admin")
-        self.assertEqual(settings.auth.fallback_admin_password, "")
+        self.assertEqual(settings.auth.fallback_admin_password, "#456@admin")
 
     def test_qsettings_store_overrides_built_in_defaults(self):
         store = InMemorySettingsStore(
@@ -44,6 +44,18 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.remote_api.base_url, "https://stored.example.test")
         self.assertEqual(settings.remote_api.timeout_seconds, 30)
         self.assertTrue(settings.solidworks.visible)
+
+    def test_empty_stored_offline_admin_password_keeps_default_password(self):
+        settings = load_settings(
+            store=InMemorySettingsStore(
+                {
+                    "auth.fallback_admin_username": "admin",
+                    "auth.fallback_admin_password": "",
+                }
+            )
+        )
+
+        self.assertEqual(settings.auth.fallback_admin_password, "#456@admin")
 
     def test_save_settings_persists_values_to_store(self):
         store = InMemorySettingsStore()

@@ -47,12 +47,10 @@ class SettingsPage(QWidget):
         title.setStyleSheet("font-size: 22px; font-weight: 700;")
         content_layout.addWidget(title)
 
-        self._create_app_group(content_layout)
         self._create_bom_group(content_layout)
         self._create_output_group(content_layout)
         self._create_solidworks_group(content_layout)
         self._create_dxf_group(content_layout)
-        self._create_remote_api_group(content_layout)
         self._create_auth_group(content_layout)
 
         actions = QHBoxLayout()
@@ -65,12 +63,6 @@ class SettingsPage(QWidget):
 
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
-
-    def _create_app_group(self, layout: QVBoxLayout) -> None:
-        form = QFormLayout()
-        self.theme_edit = QLineEdit(self.settings.app.theme)
-        form.addRow("主题", self.theme_edit)
-        layout.addWidget(self._group("应用", form))
 
     def _create_bom_group(self, layout: QVBoxLayout) -> None:
         form = QFormLayout()
@@ -121,28 +113,20 @@ class SettingsPage(QWidget):
         form.addRow("合并间距", self.dxf_spacing_spin)
         layout.addWidget(self._group("DXF", form))
 
-    def _create_remote_api_group(self, layout: QVBoxLayout) -> None:
-        form = QFormLayout()
-        self.api_base_url_edit = QLineEdit(self.settings.remote_api.base_url)
-        self.api_timeout_spin = QSpinBox()
-        self.api_timeout_spin.setRange(1, 300)
-        self.api_timeout_spin.setValue(self.settings.remote_api.timeout_seconds)
-        form.addRow("后端 API URL", self.api_base_url_edit)
-        form.addRow("请求超时秒数", self.api_timeout_spin)
-        layout.addWidget(self._group("远程 API", form))
-
     def _create_auth_group(self, layout: QVBoxLayout) -> None:
         form = QFormLayout()
-        self.admin_username_edit = QLineEdit(self.settings.auth.fallback_admin_username)
-        self.admin_password_edit = QLineEdit(self.settings.auth.fallback_admin_password)
+        self.admin_username_label = QLabel(self.settings.auth.fallback_admin_username)
+        self.admin_password_edit = QLineEdit()
+        self.admin_password_edit.setPlaceholderText("留空则不修改离线密码")
         self.admin_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addRow("保底账号", self.admin_username_edit)
-        form.addRow("保底密码", self.admin_password_edit)
-        layout.addWidget(self._group("保底登录", form))
+        form.addRow("离线账号", self.admin_username_label)
+        form.addRow("新离线密码", self.admin_password_edit)
+        layout.addWidget(self._group("离线登录", form))
 
     def save_current_settings(self, show_message: bool = True) -> AppSettings:
+        offline_password = self.admin_password_edit.text()
         self.settings = AppSettings(
-            app=replace(self.settings.app, theme=self.theme_edit.text().strip()),
+            app=self.settings.app,
             bom=replace(
                 self.settings.bom,
                 part_column=self.part_column_edit.text().strip(),
@@ -168,18 +152,15 @@ class SettingsPage(QWidget):
                 text_height=self.dxf_text_height_spin.value(),
                 spacing=self.dxf_spacing_spin.value(),
             ),
-            remote_api=replace(
-                self.settings.remote_api,
-                base_url=self.api_base_url_edit.text().strip(),
-                timeout_seconds=self.api_timeout_spin.value(),
-            ),
+            remote_api=self.settings.remote_api,
             auth=replace(
                 self.settings.auth,
-                fallback_admin_username=self.admin_username_edit.text().strip(),
-                fallback_admin_password=self.admin_password_edit.text(),
+                fallback_admin_username="admin",
+                fallback_admin_password=offline_password or self.settings.auth.fallback_admin_password,
             ),
         )
         save_settings(self.settings, self.store)
+        self.admin_password_edit.clear()
         self.settings_saved.emit(self.settings)
         if show_message:
             QMessageBox.information(self, "设置", "设置已保存，部分设置将在重启后生效。")

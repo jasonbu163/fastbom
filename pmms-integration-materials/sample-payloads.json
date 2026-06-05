@@ -1,0 +1,305 @@
+{
+  "health": {
+    "request": {
+      "method": "GET",
+      "path": "/health"
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "status": "ok"
+      }
+    }
+  },
+  "login": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "json": {
+        "username": "operator",
+        "password": "password-from-user-input"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "accessToken": "access-token",
+        "refreshToken": "refresh-token",
+        "tokenType": "bearer"
+      }
+    }
+  },
+  "createUser": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/users",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      },
+      "json": {
+        "username": "viewer01",
+        "password": "password-from-user-input",
+        "displayName": "Viewer 01",
+        "role": "viewer",
+        "status": "active"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "username": "viewer01",
+        "displayName": "Viewer 01",
+        "role": "viewer",
+        "status": "active"
+      }
+    }
+  },
+  "listUsers": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/users",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": [
+        {
+          "username": "viewer01",
+          "displayName": "Viewer 01",
+          "role": "viewer",
+          "status": "active"
+        }
+      ]
+    }
+  },
+  "updateUser": {
+    "request": {
+      "method": "PATCH",
+      "path": "/api/v1/users/viewer01",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      },
+      "json": {
+        "displayName": "Viewer Updated",
+        "status": "active"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "username": "viewer01",
+        "displayName": "Viewer Updated",
+        "role": "viewer",
+        "status": "active"
+      }
+    }
+  },
+  "changeOwnPassword": {
+    "request": {
+      "method": "PATCH",
+      "path": "/api/v1/users/viewer01/password",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      },
+      "json": {
+        "oldPassword": "old-password-from-user-input",
+        "newPassword": "new-password-from-user-input"
+      }
+    }
+  },
+  "resetManagedUserPassword": {
+    "request": {
+      "method": "PATCH",
+      "path": "/api/v1/users/viewer01/password",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      },
+      "json": {
+        "newPassword": "new-password-from-user-input"
+      }
+    }
+  },
+  "deleteUser": {
+    "request": {
+      "method": "DELETE",
+      "path": "/api/v1/users/viewer01",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "username": "viewer01",
+        "displayName": "Viewer 01",
+        "role": "viewer",
+        "status": "disabled"
+      }
+    }
+  },
+  "createUserForbidden": {
+    "response": {
+      "code": 403,
+      "message": "user_permission_denied",
+      "data": null,
+      "errorCode": "user_permission_denied"
+    }
+  },
+  "deleteSelfForbidden": {
+    "response": {
+      "code": 403,
+      "message": "cannot_delete_self",
+      "data": null,
+      "errorCode": "cannot_delete_self"
+    }
+  },
+  "oldPasswordRequired": {
+    "response": {
+      "code": 400,
+      "message": "old_password_required",
+      "data": null,
+      "errorCode": "old_password_required"
+    }
+  },
+  "invalidOldPassword": {
+    "response": {
+      "code": 400,
+      "message": "invalid_old_password",
+      "data": null,
+      "errorCode": "invalid_old_password"
+    }
+  },
+  "createUserDuplicate": {
+    "response": {
+      "code": 400,
+      "message": "user_already_exists",
+      "data": null,
+      "errorCode": "user_already_exists"
+    }
+  },
+  "listMaterials": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/materials",
+      "query": {
+        "enabled": true
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": [
+        {
+          "id": 1,
+          "materialGrade": "Q235",
+          "thickness": 2.5,
+          "specDescription": "Laser cutting sheet",
+          "defaultUnit": "sheet",
+          "enabled": true
+        }
+      ]
+    }
+  },
+  "createMaterial": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/materials",
+      "json": {
+        "materialGrade": "Q235",
+        "thickness": 2.5,
+        "specDescription": "Laser cutting sheet",
+        "defaultUnit": "sheet",
+        "enabled": true
+      }
+    }
+  },
+  "listResidualInventory": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/inventory-items",
+      "query": {
+        "inventoryType": "leftover",
+        "status": "available"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": [
+        {
+          "id": 10,
+          "materialId": 1,
+          "materialGrade": "Q235",
+          "inventoryType": "leftover",
+          "width": 1200,
+          "length": 800,
+          "thickness": 2.5,
+          "quantity": 1,
+          "source": "manual-entry",
+          "location": "A-01",
+          "status": "available",
+          "reusable": true
+        }
+      ]
+    }
+  },
+  "createResidualInventory": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/inventory-items",
+      "json": {
+        "materialId": 1,
+        "inventoryType": "leftover",
+        "width": 1200,
+        "length": 800,
+        "thickness": 2.5,
+        "quantity": 1,
+        "source": "manual-entry",
+        "location": "A-01",
+        "status": "available",
+        "reusable": true
+      }
+    }
+  },
+  "updateResidualInventory": {
+    "request": {
+      "method": "PATCH",
+      "path": "/api/v1/inventory-items/10",
+      "json": {
+        "location": "B-02",
+        "status": "reserved",
+        "reusable": true
+      }
+    }
+  },
+  "voidResidualInventory": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/inventory-items/10/void"
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "id": 10,
+        "status": "voided"
+      }
+    }
+  },
+  "businessError": {
+    "response": {
+      "code": 400,
+      "message": "business_error",
+      "data": null,
+      "errorCode": "invalid_preparation_source"
+    }
+  }
+}

@@ -15,9 +15,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from auth import AuthSession
 from config import AppSettings, load_settings
 from gui.pages.local_processing_page import LocalProcessingPage
+from gui.pages.residual_material_page import ResidualMaterialPage
 from gui.pages.settings_page import SettingsPage
+from services.remote_api import RemoteApiClient, RemoteApiError
 from utils.platform_capabilities import PlatformCapabilities, detect_platform_capabilities
 
 
@@ -26,12 +29,17 @@ class MainWindow(QMainWindow):
         self,
         settings: Optional[AppSettings] = None,
         settings_store=None,
+        auth_session: Optional[AuthSession] = None,
         platform_capabilities: Optional[PlatformCapabilities] = None,
+        remote_api_client_factory=RemoteApiClient,
     ):
         super().__init__()
         self.settings = settings or load_settings()
         self.settings_store = settings_store
+        self.auth_session = auth_session or AuthSession.fallback_admin(self.settings.auth.fallback_admin_username)
         self.platform_capabilities = platform_capabilities or detect_platform_capabilities()
+        self.remote_api_client_factory = remote_api_client_factory
+        self._logout_attempted = False
 
         self.setWindowTitle("FastBOM智能处理系统 v2.0")
         self.setMinimumSize(1100, 760)
@@ -65,6 +73,7 @@ class MainWindow(QMainWindow):
         self.sidebar = QListWidget()
         self.sidebar.setObjectName("primaryNav")
         self.sidebar.addItem("本地处理")
+        self.sidebar.addItem("余料管理")
         self.sidebar.addItem("设置")
         sidebar_layout.addWidget(self.sidebar, 1)
         root_layout.addWidget(self.primary_sidebar)
@@ -84,10 +93,15 @@ class MainWindow(QMainWindow):
             settings=self.settings,
             platform_capabilities=self.platform_capabilities,
         )
+        self.residual_material_page = ResidualMaterialPage(
+            settings=self.settings,
+            auth_session=self.auth_session,
+        )
         self.settings_page = SettingsPage(self.settings, store=self.settings_store)
         self.settings_page.settings_saved.connect(self._on_settings_saved)
 
         self.pages.addWidget(self.local_processing_page)
+        self.pages.addWidget(self.residual_material_page)
         self.pages.addWidget(self.settings_page)
         self.sidebar.currentRowChanged.connect(self.pages.setCurrentIndex)
         self.sidebar.setCurrentRow(0)
@@ -95,3 +109,24 @@ class MainWindow(QMainWindow):
     def _on_settings_saved(self, settings: AppSettings) -> None:
         self.settings = settings
         self.local_processing_page.update_settings(settings)
+        self.residual_material_page.update_settings(settings)
+
+    def closeEvent(self, event) -> None:
+        self._logout_backend_session()
+        super().closeEvent(event)
+
+    def _logout_backend_session(self) -> None:
+        if self._logout_attempted:
+            return
+        self._logout_attempted = True
+
+        remote_session = self.auth_session.remote_api_session
+        if remote_session is None:
+            return
+
+        client = self.remote_api_client_factory(self.settings.remote_api)
+        client.set_session(remote_session)
+        try:
+            client.logout()
+        except RemoteApiError:
+            pass

@@ -47,7 +47,7 @@ class RemoteApiConfig:
 @dataclass(frozen=True)
 class AuthConfig:
     fallback_admin_username: str = "admin"
-    fallback_admin_password: str = ""
+    fallback_admin_password: str = "#456@admin"
 
 
 @dataclass(frozen=True)
@@ -127,6 +127,8 @@ def _values_from_store(store: Any) -> Dict[str, Any]:
     values: Dict[str, Any] = {}
     for key, converter in SETTING_SPECS:
         value = store.value(key)
+        if key == "auth.fallback_admin_password" and value == "":
+            continue
         if value is not None:
             values[key] = _convert_value(value, converter)
     return values

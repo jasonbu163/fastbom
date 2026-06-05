@@ -80,9 +80,12 @@ automation, DXF post-processing, and future remote API form submission.
   layer for the Qt client.
 - Recommended precedence: built-in defaults < persisted QSettings values <
   current form input.
-- Good candidates for configuration: backend API base URL, request timeout,
-  default BOM columns, theme name, template directory, output folder names,
-  SolidWorks visibility, and DXF annotation parameters.
+- Login-time settings own backend API base URL and request timeout.
+- Main settings page candidates: default BOM columns, template directory,
+  output folder names, SolidWorks visibility, DXF annotation parameters, and
+  offline admin password.
+- Do not expose theme editing in the settings page unless the user asks for a
+  dedicated theme workflow.
 - Do not add configurability for one-off values unless it supports real field
   deployment or repeated operator use.
 
@@ -99,11 +102,11 @@ automation, DXF post-processing, and future remote API form submission.
 - Read the backend `openapi.json` before implementing the remote form page or
   API client.
 - Normal login credentials must come from the backend API.
-- A fallback `admin` login may be stored in local Qt settings only for
-  diagnostics or bootstrap. Do not write fallback credentials to tracked files
-  or logs.
+- The offline `admin` username is fixed and must not be editable in the UI.
+- Its local password may be stored in local Qt settings only for diagnostics or
+  bootstrap. Do not write offline credentials to tracked files or logs.
 - The backend's fallback highest-privilege account is not this `admin` account.
-- If the Qt client force-logs in with fallback `admin`, disable the remote form
+- If the Qt client logs in with offline `admin`, disable the remote form
   workflow for that session.
 - Do not maintain long-lived mock APIs in the desktop app. Short-lived static
   samples are allowed only while the real endpoint is unavailable.
