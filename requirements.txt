@@ -11,7 +11,7 @@ openpyxl>=3.1.0
 ezdxf>=1.1.0
 
 # SolidWorks COM 接口
-pywin32>=305
+pywin32>=305; sys_platform == "win32"
 
 # 主题（可选）
 qt-material>=2.14

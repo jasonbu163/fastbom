@@ -6,8 +6,10 @@ from typing import Dict, List, Optional
 import pandas as pd
 from PySide6.QtCore import QThread, Signal
 
+from config import AppSettings, load_settings
 from core import BOMClassifier, DXFProcessor, SWConverter
 from utils import logger
+from utils.platform_capabilities import detect_platform_capabilities
 
 
 class WorkerThread(QThread):
@@ -16,11 +18,18 @@ class WorkerThread(QThread):
     log_message = Signal(str)
     finished = Signal(bool, str)
     
-    def __init__(self, task_type: str, classifier: BOMClassifier, config: Optional[Dict[str, str]] = None):
+    def __init__(
+        self,
+        task_type: str,
+        classifier: BOMClassifier,
+        config: Optional[Dict[str, str]] = None,
+        app_settings: Optional[AppSettings] = None,
+    ):
         super().__init__()
         self.task_type = task_type
         self.classifier = classifier
         self.config = config or {}
+        self.app_settings = app_settings or load_settings()
     
     def run(self) -> None:
         try:
@@ -31,7 +40,7 @@ class WorkerThread(QThread):
             elif self.task_type == "merge_dxf":
                 self._run_dxf_merge()
         except Exception as e:
-            self.log_message.emit(f"💥 执行出错: {str(e)}")
+            self.log_message.emit(f"执行出错: {str(e)}")
             self.finished.emit(False, str(e))
     
     def _run_classification_with_conversion(self) -> None:
@@ -44,7 +53,7 @@ class WorkerThread(QThread):
             self.finished.emit(False, "请先选择项目目录")
             return
         
-        self.log_message.emit("🚀 开始执行分类和转换任务...")
+        self.log_message.emit("开始执行分类和转换任务...")
         self.log_message.emit("=" * 60)
         
         # 读取BOM表
@@ -59,12 +68,12 @@ class WorkerThread(QThread):
             stem = file.stem.lower()
             slddrw_dict[stem] = file
         
-        self.log_message.emit(f"📐 找到 {len(slddrw_dict)} 个工程图文件")
-        self.log_message.emit(f"📋 BOM表包含 {len(df)} 行数据")
+        self.log_message.emit(f"找到 {len(slddrw_dict)} 个工程图文件")
+        self.log_message.emit(f"BOM表包含 {len(df)} 行数据")
         self.log_message.emit("=" * 60)
         
         # ===== 第一阶段：预处理 - 筛选出需要处理的文件 =====
-        self.log_message.emit("🔍 正在分析BOM表，筛选有效零件...")
+        self.log_message.emit("正在分析BOM表，筛选有效零件...")
         
         tasks_to_process = []  # 存储需要处理的任务
         skip_reasons = {
@@ -88,14 +97,14 @@ class WorkerThread(QThread):
             material, thickness = self.classifier.parse_material(material_raw)
             if not material or not thickness:
                 skip_reasons['invalid_material'] += 1
-                self.log_message.emit(f"⚠️ 跳过 - 材料格式不正确: {part_name} ({material_raw})")
+                self.log_message.emit(f"跳过 - 材料格式不正确: {part_name} ({material_raw})")
                 continue
             
             # 检查是否有匹配的文件
             matched_file = self._fuzzy_match_file(part_name, slddrw_dict)
             if not matched_file:
                 skip_reasons['no_matched_file'] += 1
-                self.log_message.emit(f"⚠️ 跳过 - 未找到工程图: {part_name}")
+                self.log_message.emit(f"跳过 - 未找到工程图: {part_name}")
                 continue
             
             # 添加到处理列表
@@ -112,9 +121,9 @@ class WorkerThread(QThread):
         total_skipped = sum(skip_reasons.values())
         
         self.log_message.emit("=" * 60)
-        self.log_message.emit(f"📊 预处理完成:")
-        self.log_message.emit(f"   ✅ 需要处理: {total_to_process} 个零件")
-        self.log_message.emit(f"   ⚠️ 已跳过: {total_skipped} 个零件")
+        self.log_message.emit("预处理完成:")
+        self.log_message.emit(f"   需要处理: {total_to_process} 个零件")
+        self.log_message.emit(f"   已跳过: {total_skipped} 个零件")
         if skip_reasons['no_part_name'] > 0:
             self.log_message.emit(f"      - 无零件名: {skip_reasons['no_part_name']} 个")
         if skip_reasons['invalid_material'] > 0:
@@ -128,8 +137,13 @@ class WorkerThread(QThread):
             return
         
         # ===== 第二阶段：初始化SolidWorks并转换 =====
-        self.log_message.emit("🔧 正在初始化 SolidWorks...")
-        sw_converter = SWConverter()
+        capabilities = detect_platform_capabilities()
+        if not capabilities.solidworks_local_processing_available:
+            self.finished.emit(False, capabilities.solidworks_local_processing_reason)
+            return
+
+        self.log_message.emit("正在初始化 SolidWorks...")
+        sw_converter = SWConverter(solidworks_config=self.app_settings.solidworks)
         if not sw_converter.initialize():
             self.finished.emit(False, "SolidWorks初始化失败")
             return
@@ -155,33 +169,33 @@ class WorkerThread(QThread):
                 
                 # 转换为DXF
                 current_progress = idx + 1
-                self.log_message.emit(f"🔄 [{current_progress}/{total_to_process}] {part_name} → 正在转换...")
+                self.log_message.emit(f"[{current_progress}/{total_to_process}] {part_name} → 正在转换...")
                 success, msg = sw_converter.convert_to_dxf(matched_file, dxf_output)
                 
                 if success:
                     success_count += 1
-                    self.log_message.emit(f"✅ [{current_progress}/{total_to_process}] {part_name} → {material}/{thickness}/{dxf_filename}")
+                    self.log_message.emit(f"[{current_progress}/{total_to_process}] {part_name} → {material}/{thickness}/{dxf_filename}")
                 else:
                     fail_count += 1
-                    self.log_message.emit(f"❌ [{current_progress}/{total_to_process}] {msg}")
+                    self.log_message.emit(f"[{current_progress}/{total_to_process}] {msg}")
                 
                 # 更新进度条（基于实际处理的文件数）
                 self.progress.emit(int((current_progress / total_to_process) * 100))
             
             self.log_message.emit("=" * 60)
-            self.log_message.emit(f"🎉 任务完成！")
-            self.log_message.emit(f"   ✅ 成功转换: {success_count} 个文件")
+            self.log_message.emit("任务完成。")
+            self.log_message.emit(f"   成功转换: {success_count} 个文件")
             if fail_count > 0:
-                self.log_message.emit(f"   ❌ 转换失败: {fail_count} 个文件")
+                self.log_message.emit(f"   转换失败: {fail_count} 个文件")
             if total_skipped > 0:
-                self.log_message.emit(f"   ⚠️ 已跳过: {total_skipped} 个零件")
-            self.log_message.emit(f"   📊 总计处理: {success_count + fail_count}/{len(df)} (有效率: {(success_count + fail_count)/len(df)*100:.1f}%)")
+                self.log_message.emit(f"   已跳过: {total_skipped} 个零件")
+            self.log_message.emit(f"   总计处理: {success_count + fail_count}/{len(df)} (有效率: {(success_count + fail_count)/len(df)*100:.1f}%)")
             
             self.finished.emit(True, f"成功转换并归档 {success_count} 个文件")
             
         finally:
             # 关闭SolidWorks
-            self.log_message.emit("🔧 正在关闭 SolidWorks...")
+            self.log_message.emit("正在关闭 SolidWorks...")
             sw_converter.shutdown()
     
     def _fuzzy_match_file(self, part_name: str, file_dict: Dict[str, Path]) -> Optional[Path]:
@@ -210,17 +224,17 @@ class WorkerThread(QThread):
     
     def _run_dxf_processing(self) -> None:
         """DXF处理任务"""
-        self.log_message.emit("🎨 开始处理DXF文件...")
+        self.log_message.emit("开始处理DXF文件...")
         
         if self.classifier.processed_dxf_dir.exists():
             shutil.rmtree(self.classifier.processed_dxf_dir)
         self.classifier.processed_dxf_dir.mkdir(parents=True)
         
         dxf_files = list(self.classifier.classified_dir.rglob("*.dxf"))
-        self.log_message.emit(f"📐 找到 {len(dxf_files)} 个DXF文件")
+        self.log_message.emit(f"找到 {len(dxf_files)} 个DXF文件")
         
         success_count = 0
-        processor = DXFProcessor()
+        processor = DXFProcessor(dxf_config=self.app_settings.dxf)
         
         for idx, dxf_file in enumerate(dxf_files):
             import re
@@ -240,15 +254,15 @@ class WorkerThread(QThread):
             self.progress.emit(int((idx + 1) / len(dxf_files) * 100))
         
         self.log_message.emit("=" * 60)
-        self.log_message.emit(f"🎉 DXF处理完成！成功: {success_count}/{len(dxf_files)}")
+        self.log_message.emit(f"DXF处理完成。成功: {success_count}/{len(dxf_files)}")
         self.finished.emit(True, f"成功处理 {success_count} 个文件")
     
     def _run_dxf_merge(self) -> None:
         """DXF合并任务"""
-        self.log_message.emit("🔗 开始按材料/厚度合并DXF文件...")
+        self.log_message.emit("开始按材料/厚度合并DXF文件...")
         self.log_message.emit("=" * 60)
         
-        processor = DXFProcessor()
+        processor = DXFProcessor(dxf_config=self.app_settings.dxf)
         source_dir = self.classifier.classified_dir
         output_dir = self.classifier.merged_dir
         
@@ -258,7 +272,7 @@ class WorkerThread(QThread):
             self.log_message.emit(log)
         
         self.log_message.emit("=" * 60)
-        self.log_message.emit(f"🎉 合并完成！成功: {success_count} 组, 失败: {fail_count} 组")
+        self.log_message.emit(f"合并完成。成功: {success_count} 组, 失败: {fail_count} 组")
         
         if success_count > 0:
             self.finished.emit(True, f"成功合并 {success_count} 组文件")

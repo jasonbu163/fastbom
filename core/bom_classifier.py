@@ -7,11 +7,14 @@ from pathlib import Path
 from typing import Optional, Tuple, List
 import pandas as pd
 
+from config.settings import OutputConfig
+
 
 class BOMClassifier:
     """BOM分类器"""
     
-    def __init__(self):
+    def __init__(self, output_config: Optional[OutputConfig] = None):
+        self.output_config = output_config or OutputConfig()
         self.project_dir: Optional[Path] = None
         self.bom_file: Optional[Path] = None
         self.result_dir: Optional[Path] = None
@@ -28,10 +31,10 @@ class BOMClassifier:
         self.project_dir = Path(dir_path)
         if self.project_dir.exists():
             # 在项目目录下创建result目录
-            self.result_dir = self.project_dir / "result"
-            self.classified_dir = self.result_dir / "1_分类结果"
-            self.processed_dxf_dir = self.result_dir / "2_DXF处理结果"
-            self.merged_dir = self.result_dir / "3_合并文件"
+            self.result_dir = self.project_dir / self.output_config.result_dir
+            self.classified_dir = self.result_dir / self.output_config.classified_dir
+            self.processed_dxf_dir = self.result_dir / self.output_config.processed_dxf_dir
+            self.merged_dir = self.result_dir / self.output_config.merged_dir
             
             # 创建所有目录
             for directory in [self.result_dir, self.classified_dir, 

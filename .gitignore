@@ -110,3 +110,18 @@ source_file/
 *.SLDPRT
 dxf/
 *.DXF
+
+# AI / coding-agent local files
+.trae/
+.codex/
+.cursor/
+.windsurf/
+.continue/
+.superpowers/
+
+.aider*
+.cursorrules
+.codeartsdoer
+
+# MacOS files
+.DS_Store

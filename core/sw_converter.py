@@ -3,17 +3,18 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional, Tuple
-import win32com.client as win32
-import pythoncom
 
+from config.settings import SolidWorksConfig
 from utils import logger
 
 
 class SWConverter:
     """SolidWorks DXF转换器"""
     
-    def __init__(self):
+    def __init__(self, solidworks_config: Optional[SolidWorksConfig] = None):
+        self.solidworks_config = solidworks_config or SolidWorksConfig()
         self.sw_app = None
+        self.visible = self.solidworks_config.visible
         self.template_dir: Path
         self._initialize_template_dir()
     
@@ -26,7 +27,10 @@ class SWConverter:
 
         logger.info(f"程序目录: {base_path}")
         
-        self.template_dir = base_path / "template"
+        template_dir = Path(self.solidworks_config.template_dir)
+        if not template_dir.is_absolute():
+            template_dir = base_path / template_dir
+        self.template_dir = template_dir
 
         if not self.template_dir.exists():
             raise FileNotFoundError(f"未找到模板文件夹：{self.template_dir}")
@@ -34,12 +38,23 @@ class SWConverter:
     def initialize(self) -> bool:
         """初始化SolidWorks应用"""
         try:
+            if sys.platform != "win32":
+                print("SolidWorks功能仅支持Windows环境")
+                return False
+
+            try:
+                import pythoncom
+                import win32com.client as win32
+            except ModuleNotFoundError as e:
+                print(f"缺少SolidWorks COM依赖: {e.name}")
+                return False
+
             pythoncom.CoInitialize()
             try:
                 self.sw_app = win32.GetActiveObject("SldWorks.Application")
             except:
                 self.sw_app = win32.Dispatch("SldWorks.Application")
-                self.sw_app.Visible = False
+                self.sw_app.Visible = self.visible
             return True
         except Exception as e:
             print(f"初始化SolidWorks失败: {e}")
@@ -48,6 +63,8 @@ class SWConverter:
     def shutdown(self):
         """关闭SolidWorks连接"""
         try:
+            import pythoncom
+
             self.sw_app = None
             pythoncom.CoUninitialize()
         except:
@@ -195,5 +212,7 @@ class SWConverter:
     @staticmethod
     def _create_ref_int():
         """创建COM引用类型"""
+        import pythoncom
         import win32com.client
+
         return win32com.client.VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)

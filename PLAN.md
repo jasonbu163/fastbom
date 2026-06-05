@@ -1,0 +1,243 @@
+# FastBOM Generalization Plan
+
+> This plan is bilingual with `PLAN.zh-CN.md`. Keep both files aligned when the
+> project direction changes.
+
+**Goal:** Turn FastBOM from a working single-workflow desktop tool into a more
+general AIIS-style local desktop application with configurable Qt settings,
+clear page boundaries, and future remote API form support.
+
+**Recommendation:** Starting with Qt application settings is the right first
+stage. It reduces hard-coded assumptions before UI expansion, gives the future
+remote API page a stable configuration source, and keeps the initial change
+small enough to verify without touching the SolidWorks conversion path.
+
+## Current Baseline
+
+- Entry point: `main.py`.
+- Current UI: one vertical PySide6 workflow in `gui/main_window.py`.
+- Current local worker boundary: `gui/worker_thread.py`.
+- Current business core: `core/bom_classifier.py`, `core/sw_converter.py`,
+  `core/dxf_processor.py`.
+- Current hard-coded values include theme, default BOM columns, output folder
+  names, template path, SolidWorks visibility, and DXF annotation parameters.
+- The local BOM, SolidWorks, and DXF business code has already been debugged and
+  should be treated as stable during the first-stage generalization.
+- Current delivery runtime is Windows + SolidWorks for full conversion
+  verification; macOS can only verify docs, syntax, and pure Python structure.
+
+## Target Architecture
+
+```text
+main.py
+  loads settings/theme
+  creates MainWindow
+
+config/
+  settings.py              # defaults and QSettings bridge
+
+gui/
+  main_window.py           # sidebar/page shell
+  pages/
+    remote_form_page.py
+    settings_page.py
+
+services/
+  remote_api.py            # future GET/POST client
+
+core/
+  bom_classifier.py
+  sw_converter.py
+  dxf_processor.py
+```
+
+Keep `MainWindow` thin over time. UI pages collect operator intent; config and
+service modules own runtime settings and external contracts; worker/core modules
+perform long-running local side effects.
+
+## Phase 1: Configuration And Settings Foundation
+
+**Purpose:** Make the application configurable without changing the operator
+workflow or adding the remote API page yet.
+
+**Scope:**
+
+- Add a settings module with built-in defaults and persisted user settings
+  through `QSettings`.
+- Move the safest hard-coded values into settings:
+  - application theme;
+  - default BOM part/material/quantity column names;
+  - output folder names;
+  - template directory;
+  - SolidWorks visibility;
+  - DXF text layer/color/default height/spacing;
+  - future backend API base URL and request timeout;
+  - fallback admin username and fallback admin password in local Qt settings.
+- Avoid changing local core business algorithms. Only touch `core/` where a
+  small settings injection point is necessary to preserve existing behavior.
+- Add a minimal settings UI if it can be done without restructuring the whole
+  window; otherwise expose settings through the module first and defer the full
+  settings page to Phase 2.
+- Update README and AGENTS files when the settings contract lands.
+
+**Recommended files:**
+
+- Create: `config/__init__.py`.
+- Create: `config/settings.py`.
+- Modify: `main.py`.
+- Modify: `gui/main_window.py`.
+- Modify: `gui/worker_thread.py`.
+- Modify only if needed for settings injection: `core/bom_classifier.py`.
+- Modify only if needed for settings injection: `core/sw_converter.py`.
+- Modify only if needed for settings injection: `core/dxf_processor.py`.
+- Modify: `README.md`.
+- Modify: `README.zh-CN.md`.
+- Modify: `AGENTS.md`.
+- Modify: `AGENTS.zh-CN.md`.
+
+**Settings precedence:**
+
+```text
+built-in defaults < QSettings persisted values < current form input
+```
+
+**Acceptance criteria:**
+
+- `main.py` no longer hard-codes the theme directly.
+- Default BOM column names are loaded from the settings layer.
+- Output folder names are loaded from the settings layer.
+- `SWConverter` can use a configured template directory and SolidWorks
+  visibility flag.
+- `DXFProcessor` can use configured annotation values without changing its
+  public behavior for default settings.
+- Running with empty QSettings still behaves like the current application.
+- Full SolidWorks conversion remains functionally unchanged when defaults are
+  used.
+
+**Verification:**
+
+```bash
+uv run python -m compileall main.py config core gui utils build.py
+```
+
+On macOS, `uv run` may fail before compile because `pywin32` is Windows-only.
+In that case, use a read-only syntax check and state the platform limitation:
+
+```bash
+python3 -c "from pathlib import Path; paths=[Path('main.py'),Path('build.py'),*Path('config').glob('*.py'),*Path('core').glob('*.py'),*Path('gui').glob('*.py'),*Path('utils').glob('*.py')]; [compile(p.read_text(encoding='utf-8'), str(p), 'exec') for p in paths]; print(f'compiled {len(paths)} files')"
+```
+
+On Windows with SolidWorks installed:
+
+```bash
+uv run python main.py
+```
+
+Then verify the existing local workflow with a small BOM + `.SLDDRW` sample.
+
+## Phase 2: Desktop Navigation And Settings Page
+
+**Status:** Implemented for the current desktop shell. `MainWindow` now owns the
+primary sidebar and page stack, while the local workflow lives in
+`gui/pages/local_processing_page.py` with secondary navigation.
+
+**Purpose:** Move from a single vertical workflow to a desktop application shell
+that can hold multiple workflows.
+
+**Scope:**
+
+- Introduce a sidebar + `QStackedWidget`.
+- Host the local processing workflow as the first page.
+- Split local processing into secondary pages: preparation/detection,
+  classification conversion, DXF annotation, and DXF merging.
+- Add a settings page backed by the Phase 1 settings module.
+- Keep the current local processing core behavior unchanged.
+
+**Recommended files:**
+
+- Create: `gui/pages/__init__.py`.
+- Create: `gui/pages/local_processing_page.py`.
+- Create: `gui/pages/settings_page.py`.
+- Modify: `gui/main_window.py`.
+- Modify: `main.py`.
+- Create: `docs/qt-navigation.md`.
+
+**Acceptance criteria:**
+
+- The first screen still shows the local processing workflow.
+- Local processing subpages are reachable from the secondary navigation.
+- Long-running task pages expose save-log and open-output-directory actions.
+- Settings can be viewed and saved from the UI.
+- Saving settings writes through `QSettings`.
+- The UI remains responsive during existing worker tasks.
+
+## Phase 3: Remote API Form Page
+
+**Purpose:** Add the new page for remote GET/POST form workflows after settings
+and navigation are stable.
+
+**Scope:**
+
+- Read the backend `openapi.json` before implementing the page or client.
+- Add a remote form page.
+- Add a service/client boundary for HTTP requests.
+- Use configured backend API base URL and timeout.
+- Add backend-authenticated login flow for normal users.
+- Allow fallback `admin` login only from local Qt settings.
+- Record that the backend's fallback highest-privilege account is not this
+  `admin` account.
+- Disable remote form workflows whenever the client session is force-logged in
+  with fallback `admin`.
+- Show request status, response summary, and error feedback in the UI.
+- Keep mock/static samples short-lived and remove them when the real endpoint is
+  connected.
+
+**Recommended files:**
+
+- Create: `services/__init__.py`.
+- Create: `services/remote_api.py`.
+- Create: `gui/pages/remote_form_page.py`.
+- Modify: `gui/main_window.py`.
+- Modify: `config/settings.py`.
+
+**Acceptance criteria:**
+
+- GET and POST actions do not block the UI.
+- URL and timeout are not hard-coded in the page.
+- Normal credentials are obtained through the backend API contract.
+- Fallback admin credentials are never stored in tracked files or displayed in
+  logs/UI.
+- Remote forms are disabled for fallback admin sessions.
+- The service module owns request construction and response parsing.
+- README documents the expected remote request and response shape.
+
+## Phase 4: AIIS Desktop Skill Candidate
+
+**Purpose:** Decide whether this project has enough evidence to extract a
+reusable AIIS Qt/PySide6 local desktop skill.
+
+**Evidence to collect:**
+
+- Settings layer works across local processing and remote API pages.
+- Sidebar/page model supports at least two workflows.
+- Worker-side local side effects remain separate from UI.
+- Packaging and platform limitations are documented.
+
+**Likely skill boundary:**
+
+- PySide6 desktop shell structure.
+- QSettings precedence.
+- Worker thread rules for local side effects.
+- Remote API service boundary.
+- PyInstaller resource and platform checks.
+
+Do not create the shared skill until the user explicitly asks for that step.
+
+## Stage Gates
+
+- **Gate 1:** Settings defaults work with empty QSettings.
+- **Gate 2:** QSettings persistence is documented.
+- **Gate 3:** Existing local workflow still works on Windows + SolidWorks.
+- **Gate 4:** Sidebar/page split keeps the first screen useful.
+- **Gate 5:** Remote API page uses the settings/service boundary.
+- **Gate 6:** Reusable desktop rules have enough evidence for a future skill.

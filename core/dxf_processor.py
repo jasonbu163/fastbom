@@ -7,6 +7,8 @@ from ezdxf.filemanagement import readfile, new
 from ezdxf.bbox import extents
 from ezdxf.document import Drawing
 
+from config.settings import DxfConfig
+
 
 class DXFProcessor:
     """DXF文件处理器"""
@@ -15,9 +17,15 @@ class DXFProcessor:
     TEXT_HEIGHT = 50
     TEXT_LAYER = "0"
     TEXT_COLOR = 2  # 黄色
+
+    def __init__(self, dxf_config: DxfConfig | None = None):
+        self.dxf_config = dxf_config or DxfConfig()
+        self.text_height = self.dxf_config.text_height
+        self.text_layer = self.dxf_config.text_layer
+        self.text_color = self.dxf_config.text_color
+        self.spacing = self.dxf_config.spacing
     
-    @staticmethod
-    def process_dxf_file(file_path: Path, num: int, output_dir: Path) -> Tuple[bool, str]:
+    def process_dxf_file(self, file_path: Path, num: int, output_dir: Path) -> Tuple[bool, str]:
         """处理DXF文件：在图层0实体上方添加文件名标注"""
         try:
             doc: Drawing = readfile(str(file_path))
@@ -45,9 +53,9 @@ class DXFProcessor:
                 msp.add_text(
                     file_name_to_insert,
                     dxfattribs={
-                        'layer': DXFProcessor.TEXT_LAYER,
+                        'layer': self.text_layer,
                         'height': text_height,
-                        'color': DXFProcessor.TEXT_COLOR
+                        'color': self.text_color
                     }
                 ).set_placement(insert_pos)
             except Exception as text_err:
@@ -66,8 +74,7 @@ class DXFProcessor:
             print(f"详细错误信息:\n{error_detail}")
             return False, f"❌ 处理失败 [{file_path.name}]: {str(e)}"
 
-    @staticmethod
-    def merge_directory_to_dxf(input_dir: Path, output_file: Path) -> Tuple[bool, str]:
+    def merge_directory_to_dxf(self, input_dir: Path, output_file: Path) -> Tuple[bool, str]:
         """合并目录下所有DXF文件到一个文件"""
         if not input_dir.is_dir():
             return False, f"❌ 错误: {input_dir} 不是有效的目录"
@@ -80,7 +87,7 @@ class DXFProcessor:
             return False, "⚠️ 文件夹内没有 DXF 文件"
 
         current_x_offset = 0.0
-        spacing = 100.0
+        spacing = self.spacing
         success_count = 0
 
         for dxf_file in dxf_files:
@@ -108,14 +115,14 @@ class DXFProcessor:
                 
                 file_label = dxf_file.stem
                 model_height = bbox.extmax.y - bbox.extmin.y
-                text_y = model_height + DXFProcessor.TEXT_HEIGHT
+                text_y = model_height + self.text_height
                 
                 merged_msp.add_text(
                     file_label,
                     dxfattribs={
-                        'height': DXFProcessor.TEXT_HEIGHT,
-                        'layer': DXFProcessor.TEXT_LAYER,
-                        'color': DXFProcessor.TEXT_COLOR
+                        'height': self.text_height,
+                        'layer': self.text_layer,
+                        'color': self.text_color
                     }
                 ).set_placement((current_x_offset, text_y))
 
@@ -143,8 +150,7 @@ class DXFProcessor:
         except Exception as e:
             return False, f"❌ 保存合并文件失败: {str(e)}"
 
-    @staticmethod
-    def merge_by_thickness(source_dir: Path, output_dir: Path) -> Tuple[int, int, List[str]]:
+    def merge_by_thickness(self, source_dir: Path, output_dir: Path) -> Tuple[int, int, List[str]]:
         """按材料/厚度分组合并DXF文件"""
         success_count = 0
         fail_count = 0
@@ -166,7 +172,7 @@ class DXFProcessor:
                 output_filename = f"{material_dir.name}_{thickness_dir.name}_merged.dxf"
                 target_file = output_dir / output_filename
                 
-                success, msg = DXFProcessor.merge_directory_to_dxf(thickness_dir, target_file)
+                success, msg = self.merge_directory_to_dxf(thickness_dir, target_file)
                 
                 if success:
                     success_count += 1
