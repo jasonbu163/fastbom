@@ -20,6 +20,7 @@ def main():
     login_dialog = LoginDialog(AuthService(settings), settings=settings, settings_store=settings_store)
     if login_dialog.exec() != LoginDialog.DialogCode.Accepted or login_dialog.auth_session is None:
         sys.exit(0)
+    settings = login_dialog.settings
     
     window = MainWindow(
         settings=settings,
