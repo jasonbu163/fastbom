@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+if __name__ == "__main__" and __package__ in {None, ""}:
+    raise SystemExit("请从项目入口启动：uv run python main.py")
+
 from pathlib import Path
 from typing import Optional
 
@@ -17,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from auth import AuthSession
 from config import AppSettings, load_settings
+from config.app_metadata import WINDOW_TITLE, APP_NAME, APP_VERSION, window_title_with_version
 from gui.pages.local_processing_page import LocalProcessingPage
 from gui.pages.residual_material_page import ResidualMaterialPage
 from gui.pages.settings_page import SettingsPage
@@ -41,7 +45,7 @@ class MainWindow(QMainWindow):
         self.remote_api_client_factory = remote_api_client_factory
         self._logout_attempted = False
 
-        self.setWindowTitle("FastBOM智能处理系统 v2.0")
+        self.setWindowTitle(window_title_with_version())
         self.setMinimumSize(1100, 760)
 
         icon_path = Path("static/efficacy_researching_settings_icon_152066.ico")
@@ -63,9 +67,9 @@ class MainWindow(QMainWindow):
         sidebar_layout.setContentsMargins(18, 22, 18, 18)
         sidebar_layout.setSpacing(14)
 
-        title = QLabel("FastBOM")
+        title = QLabel(WINDOW_TITLE)
         title.setObjectName("sidebarTitle")
-        subtitle = QLabel("智能处理系统 v2.0")
+        subtitle = QLabel(f"{APP_NAME} {APP_VERSION}")
         subtitle.setObjectName("sidebarSubtitle")
         sidebar_layout.addWidget(title)
         sidebar_layout.addWidget(subtitle)
@@ -73,7 +77,7 @@ class MainWindow(QMainWindow):
         self.sidebar = QListWidget()
         self.sidebar.setObjectName("primaryNav")
         self.sidebar.addItem("本地处理")
-        self.sidebar.addItem("余料管理")
+        self.sidebar.addItem("板材物料库存管理")
         self.sidebar.addItem("设置")
         sidebar_layout.addWidget(self.sidebar, 1)
         root_layout.addWidget(self.primary_sidebar)
@@ -112,6 +116,7 @@ class MainWindow(QMainWindow):
         self.residual_material_page.update_settings(settings)
 
     def closeEvent(self, event) -> None:
+        self.residual_material_page.shutdown()
         self._logout_backend_session()
         super().closeEvent(event)
 

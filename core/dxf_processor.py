@@ -82,7 +82,7 @@ class DXFProcessor:
         merged_doc: Drawing = new()
         merged_msp = merged_doc.modelspace()
         
-        dxf_files = sorted(list(input_dir.rglob("*.dxf")))
+        dxf_files = sorted(list(input_dir.glob("*.dxf")))
         if not dxf_files:
             return False, "⚠️ 文件夹内没有 DXF 文件"
 
@@ -162,6 +162,22 @@ class DXFProcessor:
         for material_dir in sorted(source_dir.iterdir()):
             if not material_dir.is_dir():
                 continue
+
+            direct_dxf_files = list(material_dir.glob("*.dxf"))
+            if direct_dxf_files:
+                logs.append(f"📦 正在合并组: {material_dir.name}")
+
+                output_filename = f"{material_dir.name}_merged.dxf"
+                target_file = output_dir / output_filename
+
+                success, msg = self.merge_directory_to_dxf(material_dir, target_file)
+
+                if success:
+                    success_count += 1
+                    logs.append(f"  {msg}")
+                else:
+                    fail_count += 1
+                    logs.append(f"  {msg}")
             
             for thickness_dir in sorted(material_dir.iterdir()):
                 if not thickness_dir.is_dir():

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import mimetypes
+import uuid
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 from urllib.error import HTTPError, URLError
@@ -92,6 +94,16 @@ class RemoteApiClient:
     def list_inventory_items(self, query: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         return list(self._request("GET", "/api/v1/inventory-items", query=query))
 
+    def page_inventory_items(
+        self,
+        query: Mapping[str, Any],
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Mapping[str, Any]:
+        page_query = dict(query)
+        page_query.update({"page": page, "pageSize": page_size})
+        return self._request("GET", "/api/v1/inventory-items/page", query=page_query)
+
     def create_inventory_item(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         return self._request("POST", "/api/v1/inventory-items", payload=payload)
 
@@ -100,6 +112,34 @@ class RemoteApiClient:
 
     def void_inventory_item(self, item_id: int) -> Mapping[str, Any]:
         return self._request("POST", f"/api/v1/inventory-items/{item_id}/void")
+
+    def get_inventory_item_by_code(self, inventory_code: str) -> Mapping[str, Any]:
+        return self._request(
+            "GET",
+            "/api/v1/inventory-items/by-code",
+            query={"inventoryCode": inventory_code},
+        )
+
+    def preview_inventory_xlsx(self, file_path: str) -> Mapping[str, Any]:
+        return self._request_multipart(
+            "/api/v1/inventory-items/import-xlsx",
+            file_path=file_path,
+            query={"dryRun": True},
+        )
+
+    def import_inventory_xlsx(self, file_path: str) -> Mapping[str, Any]:
+        return self._request_multipart(
+            "/api/v1/inventory-items/import-xlsx",
+            file_path=file_path,
+            query={"dryRun": False},
+        )
+
+    def export_inventory_xlsx(self, inventory_codes: list[str]) -> bytes:
+        return self._request_bytes(
+            "POST",
+            "/api/v1/inventory-items/export-xlsx",
+            payload={"inventoryCodes": inventory_codes},
+        )
 
     def _request(
         self,
@@ -110,7 +150,7 @@ class RemoteApiClient:
         auth_required: bool = True,
     ) -> Any:
         if not self.config.base_url.strip():
-            raise RemoteApiResponseError("请先在设置中填写后端 API URL。")
+            raise RemoteApiResponseError("请先在设置中填写服务器地址。")
 
         url = self._build_url(path, query)
         headers = {"Accept": "application/json"}
@@ -120,7 +160,7 @@ class RemoteApiClient:
             headers["Content-Type"] = "application/json"
         if auth_required:
             if self.session is None:
-                raise RemoteApiResponseError("请先登录 PMMS 后端。")
+                raise RemoteApiResponseError("请先登录服务器。")
             headers["Authorization"] = f"Bearer {self.session.access_token}"
 
         request = Request(url, data=body, headers=headers, method=method)
@@ -132,12 +172,12 @@ class RemoteApiClient:
                 self.session = None
             raise RemoteApiHttpError(exc.code, self._http_error_message(exc)) from exc
         except (TimeoutError, URLError, OSError) as exc:
-            raise RemoteApiNetworkError(f"无法连接后端或请求超时：{exc}") from exc
+            raise RemoteApiNetworkError(f"无法连接服务器或请求超时：{exc}") from exc
 
         try:
             envelope = json.loads(response_body)
         except json.JSONDecodeError as exc:
-            raise RemoteApiResponseError("后端返回了无法解析的响应。") from exc
+            raise RemoteApiResponseError("服务器返回了无法解析的响应。") from exc
 
         code = envelope.get("code")
         if code != 200:
@@ -145,6 +185,102 @@ class RemoteApiClient:
             error_code = str(envelope.get("errorCode") or "")
             raise RemoteApiResponseError(message, error_code=error_code)
         return envelope.get("data")
+
+    def _request_multipart(
+        self,
+        path: str,
+        file_path: str,
+        query: Optional[Mapping[str, Any]] = None,
+    ) -> Any:
+        url = self._build_url(path, query)
+        boundary = f"----FastBOM{uuid.uuid4().hex}"
+        body = self._multipart_file_body(boundary, file_path)
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        }
+        if self.session is None:
+            raise RemoteApiResponseError("请先登录服务器。")
+        headers["Authorization"] = f"Bearer {self.session.access_token}"
+        return self._send_json_request(Request(url, data=body, headers=headers, method="POST"))
+
+    def _request_bytes(
+        self,
+        method: str,
+        path: str,
+        payload: Optional[Mapping[str, Any]] = None,
+        query: Optional[Mapping[str, Any]] = None,
+    ) -> bytes:
+        if not self.config.base_url.strip():
+            raise RemoteApiResponseError("请先在设置中填写服务器地址。")
+        if self.session is None:
+            raise RemoteApiResponseError("请先登录服务器。")
+
+        body = None
+        headers = {"Accept": "*/*", "Authorization": f"Bearer {self.session.access_token}"}
+        if payload is not None:
+            body = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+
+        request = Request(self._build_url(path, query), data=body, headers=headers, method=method)
+        try:
+            with urlopen(request, timeout=self.config.timeout_seconds) as response:
+                response_body = response.read()
+                content_type = response.headers.get("Content-Type", "")
+        except HTTPError as exc:
+            if exc.code == 401:
+                self.session = None
+            raise RemoteApiHttpError(exc.code, self._http_error_message(exc)) from exc
+        except (TimeoutError, URLError, OSError) as exc:
+            raise RemoteApiNetworkError(f"无法连接服务器或请求超时：{exc}") from exc
+
+        if "application/json" in content_type:
+            return self._data_from_json_body(response_body.decode("utf-8"))
+        return response_body
+
+    def _send_json_request(self, request: Request) -> Any:
+        try:
+            with urlopen(request, timeout=self.config.timeout_seconds) as response:
+                response_body = response.read().decode("utf-8")
+        except HTTPError as exc:
+            if exc.code == 401:
+                self.session = None
+            raise RemoteApiHttpError(exc.code, self._http_error_message(exc)) from exc
+        except (TimeoutError, URLError, OSError) as exc:
+            raise RemoteApiNetworkError(f"无法连接服务器或请求超时：{exc}") from exc
+        return self._data_from_json_body(response_body)
+
+    @staticmethod
+    def _data_from_json_body(response_body: str) -> Any:
+        try:
+            envelope = json.loads(response_body)
+        except json.JSONDecodeError as exc:
+            raise RemoteApiResponseError("服务器返回了无法解析的响应。") from exc
+
+        code = envelope.get("code")
+        if code != 200:
+            message = str(envelope.get("message") or "business_error")
+            error_code = str(envelope.get("errorCode") or "")
+            raise RemoteApiResponseError(message, error_code=error_code)
+        return envelope.get("data")
+
+    @staticmethod
+    def _multipart_file_body(boundary: str, file_path: str) -> bytes:
+        file_name = file_path.split("/")[-1] or "inventory.xlsx"
+        content_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+        parts = [
+            f"--{boundary}\r\n".encode("utf-8"),
+            (
+                f'Content-Disposition: form-data; name="file"; filename="{file_name}"\r\n'
+                f"Content-Type: {content_type}\r\n\r\n"
+            ).encode("utf-8"),
+            file_content,
+            b"\r\n",
+            f"--{boundary}--\r\n".encode("utf-8"),
+        ]
+        return b"".join(parts)
 
     def _build_url(self, path: str, query: Optional[Mapping[str, Any]]) -> str:
         base_url = self.config.base_url.rstrip("/") + "/"
@@ -165,8 +301,8 @@ class RemoteApiClient:
         except Exception:
             body = ""
         if not body:
-            return f"后端请求失败：HTTP {exc.code}"
-        return f"后端请求失败：HTTP {exc.code} {body[:300]}"
+            return f"服务器请求失败：HTTP {exc.code}"
+        return f"服务器请求失败：HTTP {exc.code} {body[:300]}"
 
 
 def _query_value(value: Any) -> Any:

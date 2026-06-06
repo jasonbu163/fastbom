@@ -94,8 +94,11 @@ class WorkerThread(QThread):
                 continue
             
             # 检查材料格式
-            material, thickness = self.classifier.parse_material(material_raw)
-            if not material or not thickness:
+            material, subfolder = self.classifier.parse_material(
+                material_raw,
+                self.app_settings.bom.material_split_markers,
+            )
+            if not material:
                 skip_reasons['invalid_material'] += 1
                 self.log_message.emit(f"跳过 - 材料格式不正确: {part_name} ({material_raw})")
                 continue
@@ -111,7 +114,7 @@ class WorkerThread(QThread):
             tasks_to_process.append({
                 'part_name': part_name,
                 'material': material,
-                'thickness': thickness,
+                'subfolder': subfolder,
                 'quantity': quantity,
                 'matched_file': matched_file
             })
@@ -155,12 +158,14 @@ class WorkerThread(QThread):
             for idx, task in enumerate(tasks_to_process):
                 part_name = task['part_name']
                 material = task['material']
-                thickness = task['thickness']
+                subfolder = task['subfolder']
                 quantity = task['quantity']
                 matched_file = task['matched_file']
                 
                 # 准备输出目录
-                dest_dir = self.classifier.classified_dir / material / thickness
+                dest_dir = self.classifier.classified_dir / material
+                if subfolder:
+                    dest_dir = dest_dir / subfolder
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 
                 qty_prefix = quantity if quantity != 'nan' else '1'
@@ -174,7 +179,8 @@ class WorkerThread(QThread):
                 
                 if success:
                     success_count += 1
-                    self.log_message.emit(f"[{current_progress}/{total_to_process}] {part_name} → {material}/{thickness}/{dxf_filename}")
+                    relative_output = f"{material}/{subfolder}/{dxf_filename}" if subfolder else f"{material}/{dxf_filename}"
+                    self.log_message.emit(f"[{current_progress}/{total_to_process}] {part_name} → {relative_output}")
                 else:
                     fail_count += 1
                     self.log_message.emit(f"[{current_progress}/{total_to_process}] {msg}")

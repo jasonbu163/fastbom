@@ -1,6 +1,6 @@
 # PMMS 后端 API 契约
 
-本文只记录 Qt 余料管理首版需要消费的后端契约。以后如果后端
+本文只记录 Qt 板材物料库存管理首版需要消费的后端契约。以后如果后端
 `/openapi.json` 与本文冲突，以实际 `openapi.json` 为准，并同步更新本目录。
 
 ## 基础规则
@@ -13,6 +13,9 @@
 - UI 页面只调用 service 方法，不直接拼 URL 或解析原始响应。
 - 普通登录走后端 `/auth/login`。
 - 不把真实密码、token、兜底账号写入 Git 跟踪文件、日志或截图。
+- 当前 PMMS 后端和 SQL Server 统一使用 `Asia/Shanghai` 中国现场本地时间。
+- API 返回的 `createdAt` / `updatedAt` 等时间字段按现场本地时间展示，Qt 首版不要再按用户时区二次换算。
+- Qt 可以只做显示格式化，例如 `YYYY-MM-DD HH:mm:ss`；不要把这些字段当 UTC 转换。
 
 ## 响应信封
 
@@ -45,6 +48,39 @@ Qt 判断逻辑建议：
 - HTTP 200 且 `code == 200`：按 `data` 渲染。
 - HTTP 200 且 `code != 200`：按 `errorCode` 显示业务错误。
 - HTTP 4xx/5xx：显示状态码和响应摘要，避免吞错。
+
+## 分页结构
+
+数据会持续增长的列表必须优先使用分页接口。老的全量列表接口仅保留给小数据量、
+兼容或下拉选项场景。
+
+统一查询参数：
+
+```text
+page
+pageSize
+```
+
+统一响应 `data`：
+
+```json
+{
+  "items": [],
+  "meta": {
+    "page": 1,
+    "pageSize": 20,
+    "total": 0
+  }
+}
+```
+
+Qt 页面判断：
+
+- `items` 渲染当前页。
+- `meta.total` 渲染总数。
+- `meta.page` 和 `meta.pageSize` 作为分页控件当前状态。
+- 默认 `page=1`、`pageSize=20`。
+- 当前后端会把 `pageSize` 归一到 `1..200`。
 
 ## 认证接口
 
@@ -88,6 +124,7 @@ Authorization: Bearer <accessToken>
 - 普通账户只能修改自己的密码。
 - Qt 端不要把“本地兜底 admin”当成后端 root。
 - 删除用户是禁用账号，不是物理删除。
+- 用户列表页面优先使用 `GET /api/v1/users/page`。
 
 ### 当前用户
 
@@ -176,10 +213,10 @@ POST /api/v1/materials
 约束：
 
 - `materialGrade + thickness` 唯一。
-- 余料新增前必须有对应 `materialId`。
+- 板材物料库存项新增前必须有对应 `materialId`。
 - Qt 可以先做“选择已有材质”，再补“快速新增材质”按钮。
 
-## 库存 / 余料
+## 板材物料库存
 
 ### 列表
 
@@ -191,6 +228,7 @@ GET /api/v1/inventory-items
 
 ```text
 materialId
+inventoryCode
 inventoryType
 status
 reusable
@@ -200,17 +238,30 @@ materialGrade
 thickness
 ```
 
-余料列表常用查询：
+库存列表常用查询：
 
 ```text
-GET /api/v1/inventory-items?inventoryType=leftover&status=available
+GET /api/v1/inventory-items?status=available
 ```
+
+Qt 板材物料库存列表页面优先使用分页接口：
+
+```text
+GET /api/v1/inventory-items/page?status=available&page=1&pageSize=20
+```
+
+说明：
+
+- 页面默认不限制 `inventoryType`，同时展示整板 / 整料和余料。
+- 用户需要时再按 `inventoryType=whole_sheet` 或 `inventoryType=leftover` 筛选。
+- 当前 XLSX 导入 / 导出字段和前端功能围绕板材类物料；管材、型材等字段后续单独规划。
 
 成功响应 `data[]`：
 
 ```json
 {
   "id": 10,
+  "inventoryCode": "RM:Q235-1200x800x2.5-20260605-10",
   "materialId": 1,
   "materialGrade": "Q235",
   "inventoryType": "leftover",
@@ -218,10 +269,13 @@ GET /api/v1/inventory-items?inventoryType=leftover&status=available
   "length": 800,
   "thickness": 2.5,
   "quantity": 1,
+  "remark": "",
   "source": "manual-entry",
   "location": "A-01",
   "status": "available",
-  "reusable": true
+  "reusable": true,
+  "createdAt": "2026-06-06T10:00:00",
+  "updatedAt": "2026-06-06T10:00:00"
 }
 ```
 
@@ -235,12 +289,14 @@ POST /api/v1/inventory-items
 
 ```json
 {
+  "inventoryCode": null,
   "materialId": 1,
   "inventoryType": "leftover",
   "width": 1200,
   "length": 800,
   "thickness": 2.5,
   "quantity": 1,
+  "remark": "",
   "source": "manual-entry",
   "location": "A-01",
   "status": "available",
@@ -258,6 +314,7 @@ PATCH /api/v1/inventory-items/{inventoryItemId}
 
 ```json
 {
+  "remark": "manual review",
   "location": "B-02",
   "status": "reserved",
   "reusable": true
@@ -271,6 +328,144 @@ POST /api/v1/inventory-items/{inventoryItemId}/void
 ```
 
 成功后 `status == "voided"`。
+
+### 按库存编码定位
+
+库存编码使用 `inventoryCode`，格式：
+
+```text
+RM:{materialGrade}-{width}x{length}x{thickness}-{YYYYMMDD}-{id}
+```
+
+例如：
+
+```text
+RM:Q235-1200x800x2.5-20260605-10
+```
+
+需要按编码打开详情时，Qt 调用：
+
+```text
+GET /api/v1/inventory-items/by-code?inventoryCode=RM:Q235-1200x800x2.5-20260605-10
+```
+
+返回 `InventoryItem`。不要用 `materialId` 做库存定位，`materialId` 只表示材质主数据，
+不能唯一定位库存项。
+
+### XLSX 批量导入
+
+```text
+POST /api/v1/inventory-items/import-xlsx?dryRun=true
+Content-Type: multipart/form-data
+```
+
+表单字段：
+
+```text
+file = inventory.xlsx
+```
+
+建议 Qt 流程：
+
+1. 用户选择 XLSX。
+2. 先调用 `dryRun=true` 预览。
+3. 展示 `created` / `updated` / `errors`。
+4. 用户确认后调用 `dryRun=false` 真正写入。
+
+单次最多 200 行有效数据，超过返回：
+
+```json
+{
+  "code": 400,
+  "message": "inventory_xlsx_limit_exceeded",
+  "data": null,
+  "errorCode": "inventory_xlsx_limit_exceeded"
+}
+```
+
+导入兼容以下列名：
+
+```text
+板材名称
+图纸路径
+宽
+长
+材质
+厚度
+数量
+使用数量
+```
+
+说明：
+
+- `板材名称` 和 `图纸路径` 可以存在，但后端导入时会忽略，不参与匹配、不入库、不校验。
+- 后端只读取 `宽`、`长`、`材质`、`厚度`、`数量`、`使用数量`。
+- 批量导入按 `宽 + 长 + 材质 + 厚度` 匹配库存规格。
+- 匹配成功时，后端按 `使用数量` 扣减数据库现有 `quantity`，并写入本次 `remark`。
+- 匹配失败时，后端新建库存规格，生成 `inventoryCode`，库存数按 `数量 - 使用数量` 计算。
+- `使用数量` 为空或 0 时不扣库存，但仍写入本次计算备注。
+- `使用数量` 大于库存数或导入数量时，库存数置 0，备注写明差额，交给人工判断。
+- `材质 + 厚度` 不存在时，后端会自动创建材质主数据。
+- 模板中没有的库存管理字段，例如 `inventoryType`、`source`、`location`、`status`、`reusable`，由 Qt 在导入后人工编辑补充。
+
+成功响应 `data`：
+
+```json
+{
+  "dryRun": true,
+  "totalRows": 2,
+  "validRows": 2,
+  "created": 2,
+  "updated": 0,
+  "skipped": 0,
+  "errors": [],
+  "previewRows": [
+    {
+      "rowNumber": 2,
+      "action": "create",
+      "inventoryCode": null,
+      "materialGrade": "Q235",
+      "inventoryType": "leftover",
+      "width": 1200,
+      "length": 800,
+      "thickness": 2.5,
+      "quantity": 10,
+      "usedQuantity": 3,
+      "remark": "未匹配到库存，已新建。库存数 10 - 使用数量 3 = 7。",
+      "source": "",
+      "location": "",
+      "status": "available",
+      "reusable": true
+    }
+  ]
+}
+```
+
+### XLSX 批量导出
+
+```text
+POST /api/v1/inventory-items/export-xlsx
+```
+
+请求：
+
+```json
+{
+  "inventoryCodes": [
+    "RM:Q235-1200x800x2.5-20260605-10"
+  ]
+}
+```
+
+成功时返回 XLSX 文件，保持 `Template.xlsx` 的 7 列顺序。单次最多导出 200 条
+`inventoryCode`；Qt 应在前端选择时同步限制，并仍以服务端错误为准。
+
+注意：
+
+- 导出列固定为 `板材名称, 图纸路径, 宽, 长, 材质, 厚度, 数量`。
+- `板材名称` 由后端填充为 `inventoryCode`。
+- `图纸路径` 由后端导出为空字符串。
+- 当前不导出二维码列；二维码打印功能待后续重新规划。
 
 ## 状态字典
 
@@ -299,4 +494,4 @@ cutting_preparation_items.source_inventory_item_id -> material_inventory_items.i
 
 这意味着后续“备料单选择某块余料”可以沿用当前库存项，不需要 Qt 端另建本地库存。
 
-首版余料页面不需要直接实现备料单，但不要把库存数据做成本地文件真相源。
+首版板材物料库存页面不需要直接实现备料单，但不要把库存数据做成本地文件真相源。

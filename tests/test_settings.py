@@ -10,6 +10,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.app.theme, "dark_teal.xml")
         self.assertEqual(settings.bom.part_column, "图号")
         self.assertEqual(settings.bom.material_column, "材料")
+        self.assertEqual(settings.bom.material_split_markers, "板")
         self.assertEqual(settings.bom.quantity_column, "总数量")
         self.assertEqual(settings.output.result_dir, "result")
         self.assertEqual(settings.output.classified_dir, "1_分类结果")
@@ -31,6 +32,7 @@ class SettingsTests(unittest.TestCase):
             {
                 "app.theme": "stored_theme.xml",
                 "bom.part_column": "零件号",
+                "bom.material_split_markers": "板;钢",
                 "remote_api.base_url": "https://stored.example.test",
                 "remote_api.timeout_seconds": "30",
                 "solidworks.visible": "true",
@@ -41,6 +43,7 @@ class SettingsTests(unittest.TestCase):
 
         self.assertEqual(settings.app.theme, "stored_theme.xml")
         self.assertEqual(settings.bom.part_column, "零件号")
+        self.assertEqual(settings.bom.material_split_markers, "板;钢")
         self.assertEqual(settings.remote_api.base_url, "https://stored.example.test")
         self.assertEqual(settings.remote_api.timeout_seconds, 30)
         self.assertTrue(settings.solidworks.visible)

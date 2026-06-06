@@ -13,6 +13,7 @@ class AppConfig:
 class BomConfig:
     part_column: str = "图号"
     material_column: str = "材料"
+    material_split_markers: str = "板"
     quantity_column: str = "总数量"
 
 
@@ -65,6 +66,7 @@ SETTING_SPECS: Tuple[Tuple[str, Any], ...] = (
     ("app.theme", str),
     ("bom.part_column", str),
     ("bom.material_column", str),
+    ("bom.material_split_markers", str),
     ("bom.quantity_column", str),
     ("output.result_dir", str),
     ("output.classified_dir", str),

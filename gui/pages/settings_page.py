@@ -68,9 +68,17 @@ class SettingsPage(QWidget):
         form = QFormLayout()
         self.part_column_edit = QLineEdit(self.settings.bom.part_column)
         self.material_column_edit = QLineEdit(self.settings.bom.material_column)
+        self.material_split_markers_edit = QLineEdit(self.settings.bom.material_split_markers)
         self.quantity_column_edit = QLineEdit(self.settings.bom.quantity_column)
+        split_markers_note = QLabel(
+            "使用英文分号分隔，按从左到右的顺序匹配；先匹配到的依据会作为一级目录结尾。\n"
+            "例如：板;钢 会把 不锈钢板 T=2.0 拆为 不锈钢板 / T=2.0。"
+        )
+        split_markers_note.setWordWrap(True)
         form.addRow("图号列", self.part_column_edit)
         form.addRow("材料列", self.material_column_edit)
+        form.addRow("材料列分类依据", self.material_split_markers_edit)
+        form.addRow("", split_markers_note)
         form.addRow("数量列", self.quantity_column_edit)
         layout.addWidget(self._group("BOM", form))
 
@@ -131,6 +139,7 @@ class SettingsPage(QWidget):
                 self.settings.bom,
                 part_column=self.part_column_edit.text().strip(),
                 material_column=self.material_column_edit.text().strip(),
+                material_split_markers=self.material_split_markers_edit.text().strip(),
                 quantity_column=self.quantity_column_edit.text().strip(),
             ),
             output=replace(

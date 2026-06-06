@@ -71,7 +71,8 @@ fastbom/
 ├── tools/                  # Project helper scripts and historical runners
 ├── src/                    # Historical NiceGUI/demo experiments
 ├── build.py                # PyInstaller packaging helper
-├── BUILD.md                # Packaging notes
+├── BUILD.md                # English packaging notes
+├── BUILD.zh-CN.md          # Chinese packaging notes
 ├── pyproject.toml
 └── uv.lock
 ```

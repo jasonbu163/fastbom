@@ -63,7 +63,8 @@ fastbom/
 ├── tools/                  # 项目辅助脚本和历史运行器
 ├── src/                    # 历史 NiceGUI/demo 实验代码
 ├── build.py                # PyInstaller 打包辅助脚本
-├── BUILD.md                # 打包说明
+├── BUILD.md                # 英文打包说明
+├── BUILD.zh-CN.md          # 中文打包说明
 ├── pyproject.toml
 └── uv.lock
 ```

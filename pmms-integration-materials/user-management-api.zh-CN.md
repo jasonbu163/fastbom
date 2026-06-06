@@ -66,8 +66,17 @@ status = disabled
 
 ## 列表
 
+兼容全量列表：
+
 ```text
 GET /api/v1/users
+Authorization: Bearer <accessToken>
+```
+
+Qt 页面优先使用分页列表：
+
+```text
+GET /api/v1/users/page?page=1&pageSize=20
 Authorization: Bearer <accessToken>
 ```
 
@@ -76,6 +85,30 @@ Authorization: Bearer <accessToken>
 - root 返回所有用户。
 - admin 只返回普通账户：`operator` / `viewer`。
 - 普通账户调用返回 403。
+
+分页响应：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "username": "viewer01",
+        "displayName": "Viewer 01",
+        "role": "viewer",
+        "status": "active"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 1
+    }
+  }
+}
+```
 
 ## 查看单个用户
 

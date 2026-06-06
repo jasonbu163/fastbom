@@ -30,9 +30,9 @@ class AuthService:
     def login_backend_user(self, username: str, password: str) -> AuthSession:
         normalized_username = username.strip()
         if not normalized_username or not password:
-            raise AuthError("请输入后端账号和密码。")
+            raise AuthError("请输入服务器账号和密码。")
         if normalized_username.lower() == "admin":
-            raise AuthError("admin 是本地离线账号，不能用于后端远程功能登录。")
+            raise AuthError("admin 是本地离线账号，不能用于服务器远程功能登录。")
 
         client = self.client_factory(self.settings.remote_api)
         try:
@@ -43,7 +43,7 @@ class AuthService:
 
         backend_username = str(user.get("username") or normalized_username)
         if backend_username.lower() == "admin":
-            raise AuthError("后端 admin 账号不能解锁远程物料库。")
+            raise AuthError("服务器 admin 账号不能解锁远程物料库。")
 
         return AuthSession.backend_user(
             username=backend_username,

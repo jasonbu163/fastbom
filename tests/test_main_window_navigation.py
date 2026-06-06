@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QApplication
 
 from auth import AuthSession
 from config import AppSettings, InMemorySettingsStore
+from config.app_metadata import window_title_with_version
 from gui.main_window import MainWindow
 from utils.platform_capabilities import PlatformCapabilities
 
@@ -30,10 +31,11 @@ class MainWindowNavigationTests(unittest.TestCase):
         )
 
         self.assertEqual(window.primary_sidebar.objectName(), "primarySidebar")
+        self.assertEqual(window.windowTitle(), window_title_with_version())
         self.assertEqual(window.content_card.objectName(), "contentCard")
         self.assertEqual(window.sidebar.count(), 3)
         self.assertEqual(window.sidebar.item(0).text(), "本地处理")
-        self.assertEqual(window.sidebar.item(1).text(), "余料管理")
+        self.assertEqual(window.sidebar.item(1).text(), "板材物料库存管理")
         self.assertEqual(window.sidebar.item(2).text(), "设置")
         self.assertEqual(window.pages.count(), 3)
 

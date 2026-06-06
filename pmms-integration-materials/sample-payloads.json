@@ -78,6 +78,38 @@
       ]
     }
   },
+  "pageUsers": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/users/page",
+      "headers": {
+        "Authorization": "Bearer <accessToken>"
+      },
+      "query": {
+        "page": 1,
+        "pageSize": 20
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "items": [
+          {
+            "username": "viewer01",
+            "displayName": "Viewer 01",
+            "role": "viewer",
+            "status": "active"
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "pageSize": 20,
+          "total": 1
+        }
+      }
+    }
+  },
   "updateUser": {
     "request": {
       "method": "PATCH",
@@ -221,12 +253,11 @@
       }
     }
   },
-  "listResidualInventory": {
+  "listInventoryItems": {
     "request": {
       "method": "GET",
       "path": "/api/v1/inventory-items",
       "query": {
-        "inventoryType": "leftover",
         "status": "available"
       }
     },
@@ -236,6 +267,7 @@
       "data": [
         {
           "id": 10,
+          "inventoryCode": "RM:Q235-1200x800x2.5-20260605-10",
           "materialId": 1,
           "materialGrade": "Q235",
           "inventoryType": "leftover",
@@ -243,25 +275,72 @@
           "length": 800,
           "thickness": 2.5,
           "quantity": 1,
+          "remark": "",
           "source": "manual-entry",
           "location": "A-01",
           "status": "available",
-          "reusable": true
+          "reusable": true,
+          "createdAt": "2026-06-06T10:00:00",
+          "updatedAt": "2026-06-06T10:00:00"
         }
       ]
     }
   },
-  "createResidualInventory": {
+  "pageInventoryItems": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/inventory-items/page",
+      "query": {
+        "status": "available",
+        "page": 1,
+        "pageSize": 20
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "items": [
+          {
+            "id": 10,
+            "inventoryCode": "RM:Q235-1200x800x2.5-20260605-10",
+            "materialId": 1,
+            "materialGrade": "Q235",
+            "inventoryType": "leftover",
+            "width": 1200,
+            "length": 800,
+            "thickness": 2.5,
+            "quantity": 1,
+            "remark": "",
+            "source": "manual-entry",
+            "location": "A-01",
+            "status": "available",
+            "reusable": true,
+            "createdAt": "2026-06-06T10:00:00",
+            "updatedAt": "2026-06-06T10:00:00"
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "pageSize": 20,
+          "total": 1
+        }
+      }
+    }
+  },
+  "createInventoryItem": {
     "request": {
       "method": "POST",
       "path": "/api/v1/inventory-items",
       "json": {
+        "inventoryCode": null,
         "materialId": 1,
         "inventoryType": "leftover",
         "width": 1200,
         "length": 800,
         "thickness": 2.5,
         "quantity": 1,
+        "remark": "",
         "source": "manual-entry",
         "location": "A-01",
         "status": "available",
@@ -269,18 +348,19 @@
       }
     }
   },
-  "updateResidualInventory": {
+  "updateInventoryItem": {
     "request": {
       "method": "PATCH",
       "path": "/api/v1/inventory-items/10",
       "json": {
+        "remark": "manual review",
         "location": "B-02",
         "status": "reserved",
         "reusable": true
       }
     }
   },
-  "voidResidualInventory": {
+  "voidInventoryItem": {
     "request": {
       "method": "POST",
       "path": "/api/v1/inventory-items/10/void"
@@ -290,8 +370,128 @@
       "message": "success",
       "data": {
         "id": 10,
+        "inventoryCode": "RM:Q235-1200x800x2.5-20260605-10",
         "status": "voided"
       }
+    }
+  },
+  "getInventoryItemByCode": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/inventory-items/by-code",
+      "query": {
+        "inventoryCode": "RM:Q235-1200x800x2.5-20260605-10"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "id": 10,
+        "inventoryCode": "RM:Q235-1200x800x2.5-20260605-10",
+        "materialId": 1,
+        "materialGrade": "Q235",
+        "inventoryType": "leftover",
+        "width": 1200,
+        "length": 800,
+        "thickness": 2.5,
+        "quantity": 1,
+        "remark": "",
+        "source": "manual-entry",
+        "location": "A-01",
+        "status": "available",
+        "reusable": true,
+        "createdAt": "2026-06-06T10:00:00",
+        "updatedAt": "2026-06-06T10:00:00"
+      }
+    }
+  },
+  "previewInventoryXlsxImport": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/inventory-items/import-xlsx",
+      "query": {
+        "dryRun": true
+      },
+      "multipart": {
+        "file": "inventory.xlsx"
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "dryRun": true,
+        "totalRows": 1,
+        "validRows": 1,
+        "created": 1,
+        "updated": 0,
+        "skipped": 0,
+        "errors": [],
+        "previewRows": [
+          {
+            "rowNumber": 2,
+            "action": "create",
+            "inventoryCode": null,
+            "materialGrade": "Q235",
+            "inventoryType": "leftover",
+            "width": 1200,
+            "length": 800,
+            "thickness": 2.5,
+            "quantity": 10,
+            "usedQuantity": 3,
+            "remark": "未匹配到库存，已新建。库存数 10 - 使用数量 3 = 7。",
+            "source": "",
+            "location": "",
+            "status": "available",
+            "reusable": true
+          }
+        ]
+      }
+    }
+  },
+  "confirmInventoryXlsxImport": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/inventory-items/import-xlsx",
+      "query": {
+        "dryRun": false
+      },
+      "multipart": {
+        "file": "inventory.xlsx"
+      }
+    }
+  },
+  "exportInventoryXlsx": {
+    "request": {
+      "method": "POST",
+      "path": "/api/v1/inventory-items/export-xlsx",
+      "json": {
+        "inventoryCodes": [
+          "RM:Q235-1200x800x2.5-20260605-10"
+        ]
+      }
+    },
+    "response": {
+      "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "fileName": "inventory-items.xlsx",
+      "columns": [
+        "板材名称",
+        "图纸路径",
+        "宽",
+        "长",
+        "材质",
+        "厚度",
+        "数量"
+      ]
+    }
+  },
+  "inventoryXlsxLimitExceeded": {
+    "response": {
+      "code": 400,
+      "message": "inventory_xlsx_limit_exceeded",
+      "data": null,
+      "errorCode": "inventory_xlsx_limit_exceeded"
     }
   },
   "businessError": {

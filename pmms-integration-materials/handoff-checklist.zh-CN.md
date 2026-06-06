@@ -16,12 +16,19 @@
 - [ ] UI 页面不直接拼 URL。
 - [ ] UI 页面不直接持久化真实密码。
 - [ ] 用户管理按 root / admin / 普通账户权限矩阵显示或禁用动作。
+- [ ] 用户列表使用 `GET /api/v1/users/page`，不要用全量列表做主表格。
+- [ ] 板材物料库存列表使用 `GET /api/v1/inventory-items/page`，不要用全量列表做主表格。
+- [ ] 板材物料库存表格显示 `inventoryCode`，导出时用它填充 `板材名称` 列。
 - [ ] 删除用户调用 `DELETE /users/{username}`，并按 `status=disabled` 处理。
 - [ ] 修改自己密码必须要求旧密码；重置下级用户密码不要求旧密码。
 - [ ] 远程请求不阻塞 UI 线程。
 - [ ] 状态 key 使用英文，中文只作为显示。
-- [ ] 新增余料时先使用后端 `materials` 的 `id`。
-- [ ] 作废余料调用 `/inventory-items/{id}/void`，不要本地删除行冒充成功。
+- [ ] 新增库存项时先使用后端 `materials` 的 `id`。
+- [ ] 作废库存项调用 `/inventory-items/{id}/void`，不要本地删除行冒充成功。
+- [ ] 批量导入先调用 `import-xlsx?dryRun=true` 预览，再调用 `dryRun=false` 确认。
+- [ ] 批量导出调用 `/inventory-items/export-xlsx`，导出文件保持 `Template.xlsx` 的 7 列。
+- [ ] 批量导入预览展示 `使用数量` 和后端返回的 `remark`。
+- [ ] 编码定位调用 `/inventory-items/by-code?inventoryCode=...`。
 
 ## 联调顺序
 
@@ -30,17 +37,21 @@
 3. `GET /api/v1/auth/me`。
 4. root 会话：`POST /api/v1/users` 创建 admin。
 5. admin 会话：`POST /api/v1/users` 创建 viewer。
-6. root/admin 会话：`GET /api/v1/users`。
+6. root/admin 会话：`GET /api/v1/users/page?page=1&pageSize=20`。
 7. root/admin 会话：`PATCH /api/v1/users/{username}`。
 8. root/admin 会话：`PATCH /api/v1/users/{username}/password`。
 9. root/admin 会话：`DELETE /api/v1/users/{username}`。
 10. 用户本人会话：`PATCH /api/v1/users/{username}/password`，带 `oldPassword`。
 11. `GET /api/v1/materials?enabled=true`。
 12. `POST /api/v1/materials`。
-13. `GET /api/v1/inventory-items?inventoryType=leftover&status=available`。
+13. `GET /api/v1/inventory-items/page?status=available&page=1&pageSize=20`。
 14. `POST /api/v1/inventory-items`。
 15. `PATCH /api/v1/inventory-items/{id}`。
 16. `POST /api/v1/inventory-items/{id}/void`。
+17. `GET /api/v1/inventory-items/by-code?inventoryCode=...`。
+18. `POST /api/v1/inventory-items/import-xlsx?dryRun=true`。
+19. `POST /api/v1/inventory-items/import-xlsx?dryRun=false`。
+20. `POST /api/v1/inventory-items/export-xlsx`。
 
 ## 后端验证
 

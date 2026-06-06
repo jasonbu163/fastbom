@@ -1,164 +1,180 @@
-# FastBOM 整合版 - 打包说明
+# PMMS 3.0 Windows Packaging Guide
 
-## 快速开始
+This document describes how to package the PMMS 3.0 desktop client from this
+FastBOM repository. The delivered application is a PySide6 Windows operator
+console for BOM processing, SolidWorks COM conversion, DXF post-processing, and
+remote material inventory workflows.
 
-### 1. 安装依赖
+The release artifact must be built on Windows. macOS or Linux can run syntax
+and UI smoke checks, but they cannot validate the SolidWorks COM path.
+
+## Environment
+
+- Windows 10 or Windows 11.
+- Python 3.13.
+- `uv` project environment.
+- SolidWorks installed and licensed on the build and verification machine.
+- Project dependencies installed with:
+
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
-### 2. 运行打包脚本
+The project declares Windows-only COM dependencies through `pywin32`; do not
+install agent-only helper packages into the project `.venv`.
+
+## Pre-Build Checks
+
+Run the lightweight compile check first:
+
 ```bash
-python build.py
+uv run python -m compileall main.py config core gui utils build.py
 ```
 
-### 3. 查看输出
-- **单文件模式**: `dist/FastBOM.exe`
-- **文件夹模式**: `dist/FastBOM/`
+On a Windows machine with GUI support, also launch the desktop app:
 
----
+```bash
+uv run python main.py
+```
 
-## 打包配置
+Before a release build, verify the local processing workflow with a small BOM
+and SolidWorks drawing set.
 
-编辑 `build.py` 中的 `CONFIG` 字典:
+## Build Commands
+
+The executable name, packaging name, window title, and version come from
+`config/app_metadata.py`:
 
 ```python
-CONFIG = {
-    'main_script': 'main.py',           # 主程序入口
-    'app_name': 'FastBOM',              # 应用名称
-    'icon_path': 'static/icon.ico',     # 应用图标
-    'onefile': True,                    # True=单文件, False=文件夹
-    'windowed': True,                   # True=无控制台, False=显示控制台
-    'optimize_size': False,             # True=排除不需要的模块
-}
+APP_NAME = "PMMS"
+APP_VERSION = "3.0"
+WINDOW_TITLE = "生产物料管理系统"
 ```
 
----
+Change those metadata constants first when the product name or displayed version
+changes; `build.py` reads them instead of keeping a separate hard-coded product
+name.
 
-## 系统要求
+Default release build:
 
-### 开发环境
-- Python 3.8+
-- Windows 操作系统
-- SolidWorks (用于 COM 接口开发)
-
-### 目标机器要求
-- Windows 7/10/11
-- **必须安装 SolidWorks** (用于 DXF 转换功能)
-- 建议以管理员权限运行 (COM 调用需要)
-
----
-
-## 项目结构
-
-```
-fastbom_integrated/
-├── main.py                 # 主程序入口
-├── core/                   # 核心业务逻辑
-│   ├── bom_classifier.py
-│   ├── dxf_processor.py
-│   └── sw_converter.py
-├── gui/                    # GUI 界面
-│   ├── main_window.py
-│   └── worker_thread.py
-├── utils/                  # 工具类
-│   ├── common.py
-│   └── logger.py
-├── template/               # SolidWorks 模板文件
-│   ├── GB-3.5新-小箭头.sldstd
-│   ├── a0图纸格式.slddrt
-│   └── ...
-└── static/                 # 静态资源
-    └── icon.ico
-```
-
----
-
-## 常见问题
-
-### 1. 打包后运行报错 "无法找到模块"
-**解决方案**: 在 `build.py` 的 `hidden_imports` 中添加缺失的模块
-
-### 2. 打包文件过大
-**解决方案**:
-- 设置 `optimize_size: True`
-- 使用虚拟环境打包（只安装必要依赖）
-- 考虑使用文件夹模式而非单文件模式
-
-### 3. SolidWorks COM 错误
-**解决方案**:
-- 确保目标机器已安装 SolidWorks
-- 以管理员权限运行程序
-- 检查 SolidWorks 版本兼容性
-
-### 4. NumPy C-extensions 丢失
-**解决方案**: 使用 `--collect-all numpy` (已在脚本中配置)
-
----
-
-## 高级选项
-
-### 使用 UPX 压缩
 ```bash
-pip install pyinstaller[upx]
-```
-在 `build.py` 中添加:
-```python
-cmd.append('--upx-dir=/path/to/upx')
+uv run python build.py
 ```
 
-### 多版本构建
+Debug build with a console window:
+
 ```bash
-# 控制台版本 (用于调试)
-python build.py --console
-
-# GUI 版本 (用于发布)
-python build.py --windowed
+uv run python build.py --console
 ```
 
----
+Folder-mode build, useful when diagnosing missing DLLs or data files:
 
-## 测试建议
-
-1. **本机测试**: 确保所有功能正常
-2. **干净环境测试**: 在未安装 Python 的机器上测试
-3. **不同 SolidWorks 版本测试**: 确保兼容性
-4. **性能测试**: 使用大型 BOM 表和多个工程图文件
-
----
-
-## 分发清单
-
-打包完成后，分发以下内容:
-
-### 单文件模式
-```
-FastBOM.exe
-template/          (必需 - SolidWorks 模板)
-static/            (可选 - 图标等资源)
-使用说明.pdf       (建议附带)
+```bash
+uv run python build.py --onedir --console
 ```
 
-### 文件夹模式
-```
-FastBOM/           (整个文件夹)
-├── FastBOM.exe
-├── template/
-└── static/
-使用说明.pdf
+Non-Windows smoke build, only for checking PyInstaller wiring:
+
+```bash
+uv run python build.py --allow-non-windows
 ```
 
----
+Do not treat a non-Windows build as a release artifact.
 
-## 技术支持
+## Output
 
-如遇到问题:
-1. 查看 `BUILD_README.md` 常见问题部分
-2. 检查 PyInstaller 日志文件
-3. 使用控制台模式运行，查看详细错误信息
+With the current metadata, default one-file mode is:
 
----
+```text
+dist/
+├── PMMS.exe
+├── static/
+└── template/
+```
 
-## 许可证
+With the current metadata, folder mode is:
 
-[根据项目实际情况填写]
+```text
+dist/
+└── PMMS/
+    ├── PMMS.exe
+    ├── static/
+    └── template/
+```
+
+`template/` is copied beside the executable so the delivery package does not
+depend on the source tree. Operators and support engineers should be able to
+inspect or replace SolidWorks templates explicitly.
+
+## Runtime Configuration
+
+PMMS 3.0 uses Qt `QSettings` for desktop configuration:
+
+- Login-time server URL and timeout are saved by the login dialog.
+- Local workflow defaults are edited from the settings page.
+- Windows stores these values through the platform-native QSettings backend.
+
+Do not write real passwords, tokens, customer IP addresses, or customer data
+into tracked files or build documentation.
+
+## Delivery Checklist
+
+- Build on Windows with the same Python major/minor version used in development.
+- Confirm `dist/PMMS.exe` or `dist/PMMS/PMMS.exe` exists.
+- Confirm `template/` and `static/` are present in the delivery output.
+- Start the executable on a clean Windows machine without source checkout.
+- Login with a backend account when remote material inventory is required.
+- Verify offline `admin` login still disables remote inventory actions.
+- Run a small BOM and SolidWorks drawing conversion.
+- Verify generated DXF classification, annotation, and merge output folders.
+- If remote inventory is enabled, verify list refresh and one edit operation.
+
+## Common Failures
+
+### PyInstaller Is Missing
+
+Run:
+
+```bash
+uv sync
+```
+
+Then rerun:
+
+```bash
+uv run python build.py
+```
+
+### SolidWorks COM Fails
+
+Check:
+
+- SolidWorks is installed and licensed.
+- Windows user permissions allow COM automation.
+- The same Windows account can open SolidWorks normally.
+- The build was not produced on macOS or Linux.
+
+### Missing Module At Runtime
+
+Use a debug build:
+
+```bash
+uv run python build.py --onedir --console
+```
+
+Read the console error and add only the specific missing module to
+`hidden_imports()` in `build.py`.
+
+### Resource Path Problems
+
+Check that `template/` and `static/` exist beside the executable in `dist/`.
+The packaged application must not rely on the source checkout current working
+directory.
+
+## Notes For Future Packaging Work
+
+- Keep `BUILD.md` and `BUILD.zh-CN.md` synchronized.
+- Keep `main.py` as the production packaging entry point.
+- Do not package historical demos under `src/` as the delivery application.
+- Do not make the build script mutate `requirements.txt`, `pyproject.toml`, or
+  generated documentation.

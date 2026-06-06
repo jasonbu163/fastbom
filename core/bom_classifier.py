@@ -4,7 +4,7 @@ import re
 import platform
 import subprocess
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Sequence, Tuple, List
 import pandas as pd
 
 from config.settings import OutputConfig
@@ -116,24 +116,60 @@ class BOMClassifier:
         except Exception as e:
             return False, f"读取失败: {e}"
     
-    def parse_material(self, material_str: str) -> Tuple[Optional[str], Optional[str]]:
-        """解析材料字符串
+    def parse_material(
+        self,
+        material_str: str,
+        material_markers: Optional[Sequence[str] | str] = None,
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """解析材料字符串并返回分类目录片段
         
         Args:
             material_str: 材料字符串，格式如 "铝板 T=2.0"
+            material_markers: 分类依据，按顺序匹配，如 ["板", "钢"]
         
         Returns:
-            (材料名称, 厚度) 或 (None, None)
+            (一级目录, 二级目录) 或 (None, None)
         """
         if not material_str or pd.isna(material_str):
             return None, None
         
-        material_str = str(material_str).strip()
-        pattern = r'(.+?板)\s*T=(\d+(?:\.\d+)?)'
-        match = re.search(pattern, material_str)
-        if match:
-            return match.group(1).strip(), match.group(2).strip()
-        return None, None
+        normalized_material = self._normalize_material_segment(material_str)
+        if not normalized_material:
+            return None, None
+
+        for marker in self._normalize_material_markers(material_markers):
+            marker_index = normalized_material.find(marker)
+            if marker_index < 0:
+                continue
+
+            split_at = marker_index + len(marker)
+            material = normalized_material[:split_at].strip()
+            subfolder = normalized_material[split_at:].strip()
+            if not material:
+                return None, None
+            return material, subfolder or None
+
+        return normalized_material, None
+
+    @staticmethod
+    def _normalize_material_markers(material_markers: Optional[Sequence[str] | str]) -> List[str]:
+        if material_markers is None:
+            material_markers = ["板"]
+        if isinstance(material_markers, str):
+            marker_items = material_markers.replace("；", ";").split(";")
+        else:
+            marker_items = material_markers
+        markers: List[str] = []
+        for marker in marker_items:
+            normalized_marker = BOMClassifier._normalize_material_segment(marker)
+            if normalized_marker:
+                markers.append(normalized_marker)
+        return markers
+
+    @staticmethod
+    def _normalize_material_segment(value: object) -> str:
+        text = re.sub(r'\s+', ' ', str(value).strip())
+        return re.sub(r'\s*=\s*', '=', text)
     
     def open_folder(self, path: Path) -> None:
         """跨平台打开文件夹"""
