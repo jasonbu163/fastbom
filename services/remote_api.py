@@ -84,6 +84,25 @@ class RemoteApiClient:
     def get_current_user(self) -> Mapping[str, Any]:
         return self._request("GET", "/api/v1/auth/me")
 
+    def page_users(self, page: int = 1, page_size: int = 20) -> Mapping[str, Any]:
+        return self._request(
+            "GET",
+            "/api/v1/users/page",
+            query={"page": page, "pageSize": page_size},
+        )
+
+    def create_user(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self._request("POST", "/api/v1/users", payload=payload)
+
+    def update_user(self, username: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self._request("PATCH", f"/api/v1/users/{username}", payload=payload)
+
+    def update_user_password(self, username: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self._request("PATCH", f"/api/v1/users/{username}/password", payload=payload)
+
+    def delete_user(self, username: str) -> Mapping[str, Any]:
+        return self._request("DELETE", f"/api/v1/users/{username}")
+
     def list_materials(self, enabled: Optional[bool] = True) -> list[Mapping[str, Any]]:
         query = {} if enabled is None else {"enabled": enabled}
         return list(self._request("GET", "/api/v1/materials", query=query))

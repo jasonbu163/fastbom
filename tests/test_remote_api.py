@@ -100,6 +100,75 @@ class RemoteApiClientTests(unittest.TestCase):
         self.assertIn("pageSize=20", request.full_url)
         self.assertEqual(page_data["meta"]["total"], 45)
 
+    def test_user_management_methods_use_user_endpoints(self):
+        client = RemoteApiClient(RemoteApiConfig(base_url="http://localhost:18080/", timeout_seconds=3))
+        client.set_session(RemoteApiSession("access-token", "refresh-token"))
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {
+                    "code": 200,
+                    "message": "success",
+                    "data": {"items": [], "meta": {"page": 1, "pageSize": 20, "total": 0}},
+                }
+            )
+            page_data = client.page_users(page=1, page_size=20)
+
+        request = urlopen.call_args.args[0]
+        self.assertIn("/api/v1/users/page", request.full_url)
+        self.assertIn("page=1", request.full_url)
+        self.assertIn("pageSize=20", request.full_url)
+        self.assertEqual(page_data["meta"]["total"], 0)
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"username": "viewer01"}}
+            )
+            client.create_user(
+                {
+                    "username": "viewer01",
+                    "password": "secret",
+                    "displayName": "Viewer 01",
+                    "role": "viewer",
+                    "status": "active",
+                }
+            )
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/users")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(json.loads(request.data.decode("utf-8"))["username"], "viewer01")
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"username": "viewer01"}}
+            )
+            client.update_user("viewer01", {"displayName": "Viewer Updated"})
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/users/viewer01")
+        self.assertEqual(request.get_method(), "PATCH")
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"username": "viewer01"}}
+            )
+            client.update_user_password("viewer01", {"newPassword": "new-secret"})
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/users/viewer01/password")
+        self.assertNotIn("oldPassword", json.loads(request.data.decode("utf-8")))
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"username": "viewer01", "status": "disabled"}}
+            )
+            client.delete_user("viewer01")
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/users/viewer01")
+        self.assertEqual(request.get_method(), "DELETE")
+
     def test_get_inventory_item_by_code_uses_code_endpoint(self):
         client = RemoteApiClient(RemoteApiConfig(base_url="http://localhost:18080/", timeout_seconds=3))
         client.set_session(RemoteApiSession("access-token", "refresh-token"))
