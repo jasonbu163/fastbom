@@ -285,6 +285,38 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         self.assertEqual(page.current_page, 1)
         page.refresh_inventory.assert_called_once_with()
 
+    def test_reset_filters_restores_default_query_and_refreshes(self):
+        remote_session = AuthSession.backend_user(
+            username="operator",
+            access_token="access-token",
+            refresh_token="refresh-token",
+        )
+        page = ResidualMaterialPage(settings=AppSettings(), auth_session=remote_session)
+        page.inventory_code_filter.setText("RM")
+        page.material_grade_filter.setText("Q")
+        page.thickness_filter.setValue(2.5)
+        page.inventory_type_filter.setCurrentIndex(page.inventory_type_filter.findData("leftover"))
+        page.status_filter.setCurrentIndex(page.status_filter.findData("voided"))
+        page.reusable_filter.setCurrentIndex(page.reusable_filter.findData(False))
+        page.min_width_filter.setValue(100)
+        page.min_length_filter.setValue(200)
+        page.current_page = 3
+        page.refresh_inventory = Mock()
+
+        page.reset_filters_btn.click()
+
+        query = page._inventory_query()
+        self.assertEqual(page.current_page, 1)
+        self.assertEqual(query["inventoryCode"], "")
+        self.assertEqual(query["materialGrade"], "")
+        self.assertEqual(query["thickness"], None)
+        self.assertEqual(query["inventoryType"], "")
+        self.assertEqual(query["status"], "available")
+        self.assertEqual(query["reusable"], None)
+        self.assertEqual(query["minWidth"], None)
+        self.assertEqual(query["minLength"], None)
+        page.refresh_inventory.assert_called_once_with()
+
     def test_inventory_date_columns_display_and_sort(self):
         remote_session = AuthSession.backend_user(
             username="operator",

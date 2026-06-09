@@ -499,6 +499,8 @@ class ResidualMaterialPage(QWidget):
         self.min_length_filter.setMinimumWidth(108)
         self.apply_filters_btn = QPushButton("应用筛选")
         self.apply_filters_btn.clicked.connect(self.apply_filters)
+        self.reset_filters_btn = QPushButton("重置筛选")
+        self.reset_filters_btn.clicked.connect(self.reset_filters)
         self.locate_code_btn = QPushButton("定位编码")
         self.locate_code_btn.clicked.connect(self.locate_inventory_code)
         filter_grid.addWidget(QLabel("编码"), 0, 0)
@@ -519,6 +521,7 @@ class ResidualMaterialPage(QWidget):
         filter_grid.addWidget(self.min_length_filter, 1, 7)
         filter_grid.addWidget(self.locate_code_btn, 1, 8)
         filter_grid.addWidget(self.apply_filters_btn, 1, 9)
+        filter_grid.addWidget(self.reset_filters_btn, 1, 10)
         filter_grid.setColumnStretch(1, 1)
         filter_grid.setColumnStretch(7, 1)
         group_layout.addLayout(filter_grid)
@@ -637,6 +640,17 @@ class ResidualMaterialPage(QWidget):
     def apply_filters(self) -> None:
         self.current_page = 1
         self.refresh_inventory()
+
+    def reset_filters(self) -> None:
+        self.inventory_code_filter.clear()
+        self.material_grade_filter.clear()
+        self.thickness_filter.setValue(0.0)
+        self.inventory_type_filter.setCurrentIndex(0)
+        self.status_filter.setCurrentIndex(max(0, self.status_filter.findData("available")))
+        self.reusable_filter.setCurrentIndex(0)
+        self.min_width_filter.setValue(0.0)
+        self.min_length_filter.setValue(0.0)
+        self.apply_filters()
 
     def previous_page(self) -> None:
         if self.current_page <= 1:
