@@ -50,6 +50,12 @@ INVENTORY_TYPE_LABELS = {
     "leftover": "余料",
 }
 
+REMOTE_ERROR_MESSAGES = {
+    "material_in_use": "该规格已用于库存，不能修改材质 / 牌号或厚度。",
+    "material_already_exists": "已存在相同材质 / 牌号和厚度的物料规格。",
+    "material_not_found": "物料规格不存在或已被移除。",
+}
+
 
 class ApiCallWorker(QObject):
     finished = Signal(int, object)
@@ -65,8 +71,9 @@ class ApiCallWorker(QObject):
         try:
             self.finished.emit(self.request_id, self.call())
         except RemoteApiResponseError as exc:
+            message = REMOTE_ERROR_MESSAGES.get(exc.error_code, str(exc))
             suffix = f"（{exc.error_code}）" if exc.error_code else ""
-            self.failed.emit(f"{exc}{suffix}")
+            self.failed.emit(f"{message}{suffix}")
         except RemoteApiError as exc:
             self.failed.emit(str(exc))
         except Exception as exc:
@@ -82,6 +89,301 @@ class SortableTableWidgetItem(QTableWidgetItem):
         if left is not None and right is not None:
             return float(left) < float(right)
         return self.text() < other.text()
+
+
+class MaterialSpecDialog(QDialog):
+    def __init__(self, page: "ResidualMaterialPage"):
+        super().__init__(page)
+        self.page = page
+        self.materials: list[Mapping[str, Any]] = []
+        self.current_page = 1
+        self.page_size = 20
+        self.total_items = 0
+
+        self.setWindowTitle("物料规格")
+        self.resize(780, 520)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+
+        filter_row = QHBoxLayout()
+        self.grade_filter = QLineEdit()
+        self.grade_filter.setPlaceholderText("材质 / 牌号")
+        self.thickness_filter = QDoubleSpinBox()
+        self.thickness_filter.setRange(0.0, 1000.0)
+        self.thickness_filter.setDecimals(2)
+        self.thickness_filter.setSpecialValueText("不限")
+        self.enabled_filter = QComboBox()
+        self.enabled_filter.addItem("全部", None)
+        self.enabled_filter.addItem("启用", True)
+        self.enabled_filter.addItem("禁用", False)
+        self.apply_btn = QPushButton("筛选")
+        self.apply_btn.clicked.connect(self.apply_filters)
+        filter_row.addWidget(QLabel("材质"))
+        filter_row.addWidget(self.grade_filter, 1)
+        filter_row.addWidget(QLabel("厚度"))
+        filter_row.addWidget(self.thickness_filter)
+        filter_row.addWidget(QLabel("状态"))
+        filter_row.addWidget(self.enabled_filter)
+        filter_row.addWidget(self.apply_btn)
+        layout.addLayout(filter_row)
+
+        action_row = QHBoxLayout()
+        self.add_btn = QPushButton("新增")
+        self.edit_btn = QPushButton("编辑")
+        self.toggle_enabled_btn = QPushButton("启用 / 禁用")
+        self.refresh_btn = QPushButton("刷新")
+        self.add_btn.clicked.connect(lambda: self._show_material_form())
+        self.edit_btn.clicked.connect(self._edit_selected_material)
+        self.toggle_enabled_btn.clicked.connect(self._toggle_selected_material)
+        self.refresh_btn.clicked.connect(self.refresh)
+        action_row.addWidget(self.add_btn)
+        action_row.addWidget(self.edit_btn)
+        action_row.addWidget(self.toggle_enabled_btn)
+        action_row.addStretch()
+        action_row.addWidget(self.refresh_btn)
+        layout.addLayout(action_row)
+
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["材质 / 牌号", "厚度", "规格说明", "默认单位", "状态", "ID"])
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.doubleClicked.connect(self._edit_selected_material)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.setColumnWidth(0, 140)
+        self.table.setColumnWidth(1, 90)
+        self.table.setColumnWidth(2, 220)
+        self.table.setColumnWidth(3, 100)
+        self.table.setColumnWidth(4, 80)
+        self.table.setColumnWidth(5, 70)
+        self.table.verticalHeader().setVisible(False)
+        layout.addWidget(self.table, 1)
+
+        pagination = QHBoxLayout()
+        self.total_label = QLabel("共 0 条")
+        self.page_label = QLabel("第 1 / 1 页")
+        self.page_size_spin = QSpinBox()
+        self.page_size_spin.setRange(1, 200)
+        self.page_size_spin.setValue(self.page_size)
+        self.page_size_spin.valueChanged.connect(self.change_page_size)
+        self.prev_page_btn = QPushButton("上一页")
+        self.next_page_btn = QPushButton("下一页")
+        self.prev_page_btn.clicked.connect(self.previous_page)
+        self.next_page_btn.clicked.connect(self.next_page)
+        pagination.addWidget(self.total_label)
+        pagination.addStretch()
+        pagination.addWidget(QLabel("每页"))
+        pagination.addWidget(self.page_size_spin)
+        pagination.addWidget(self.prev_page_btn)
+        pagination.addWidget(self.page_label)
+        pagination.addWidget(self.next_page_btn)
+        layout.addLayout(pagination)
+
+        self.refresh()
+
+    def apply_filters(self) -> None:
+        self.current_page = 1
+        self.refresh()
+
+    def previous_page(self) -> None:
+        if self.current_page <= 1:
+            return
+        self.current_page -= 1
+        self.refresh()
+
+    def next_page(self) -> None:
+        if self.current_page >= self._total_pages():
+            return
+        self.current_page += 1
+        self.refresh()
+
+    def change_page_size(self, page_size: int) -> None:
+        self.page_size = page_size
+        self.current_page = 1
+        self.refresh()
+
+    def refresh(self) -> None:
+        self.page._run_api(
+            "正在刷新物料规格...",
+            lambda: self.page.client.page_materials(self._query(), self.current_page, self.page_size),
+            self._on_material_page_loaded,
+        )
+
+    def _query(self) -> dict[str, Any]:
+        return {
+            "enabled": self.enabled_filter.currentData(),
+            "materialGrade": self.grade_filter.text().strip(),
+            "thickness": self.thickness_filter.value() or None,
+        }
+
+    def _on_material_page_loaded(self, page_data: Mapping[str, Any]) -> None:
+        meta = dict(page_data.get("meta") or {})
+        self.current_page = int(meta.get("page") or self.current_page)
+        self.page_size = int(meta.get("pageSize") or self.page_size)
+        self.total_items = int(meta.get("total") or 0)
+        if self.page_size_spin.value() != self.page_size:
+            self.page_size_spin.blockSignals(True)
+            self.page_size_spin.setValue(self.page_size)
+            self.page_size_spin.blockSignals(False)
+        self.materials = list(page_data.get("items") or [])
+        self.table.setRowCount(len(self.materials))
+        for row, material in enumerate(self.materials):
+            values = [
+                material.get("materialGrade"),
+                material.get("thickness"),
+                material.get("specDescription"),
+                material.get("defaultUnit"),
+                "启用" if material.get("enabled") else "禁用",
+                material.get("id"),
+            ]
+            for col, value in enumerate(values):
+                table_item = SortableTableWidgetItem("" if value is None else str(value))
+                table_item.setData(Qt.ItemDataRole.UserRole, int(material["id"]))
+                if col in (1, 5):
+                    table_item.setData(Qt.ItemDataRole.UserRole + 1, float(value or 0))
+                self.table.setItem(row, col, table_item)
+        self._refresh_pagination_labels()
+
+    def _edit_selected_material(self) -> None:
+        material = self._selected_material()
+        if material is None:
+            QMessageBox.information(self, "物料规格", "请先选择一条物料规格。")
+            return
+        self._show_material_form(material)
+
+    def _toggle_selected_material(self) -> None:
+        material = self._selected_material()
+        if material is None:
+            QMessageBox.information(self, "物料规格", "请先选择一条物料规格。")
+            return
+        enabled = not bool(material.get("enabled"))
+        action = "启用" if enabled else "禁用"
+        material_id = int(material["id"])
+        if QMessageBox.question(self, "物料规格", f"确认{action}物料规格 #{material_id}？") != QMessageBox.StandardButton.Yes:
+            return
+        self.page._run_api(
+            f"正在{action}物料规格...",
+            lambda: self.page.client.update_material(material_id, {"enabled": enabled}),
+            self._after_material_changed,
+        )
+
+    def _show_material_form(self, material: Optional[Mapping[str, Any]] = None) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("编辑物料规格" if material else "新增物料规格")
+        form = QFormLayout(dialog)
+        grade_edit = QLineEdit(str(material.get("materialGrade") or "") if material else "")
+        thickness_spin = QDoubleSpinBox()
+        thickness_spin.setRange(0.01, 1000.0)
+        thickness_spin.setDecimals(2)
+        thickness_spin.setValue(float((material or {}).get("thickness") or 0.01))
+        spec_edit = QLineEdit(str((material or {}).get("specDescription") or ""))
+        unit_edit = QLineEdit(str((material or {}).get("defaultUnit") or "张"))
+        enabled_check = QCheckBox("启用")
+        enabled_check.setChecked(bool((material or {"enabled": True}).get("enabled")))
+        form.addRow("材质 / 牌号", grade_edit)
+        form.addRow("厚度", thickness_spin)
+        form.addRow("规格说明", spec_edit)
+        form.addRow("默认单位", unit_edit)
+        form.addRow("状态", enabled_check)
+        if material:
+            note = QLabel("已被库存引用的规格，后端会拒绝修改材质 / 厚度。")
+            note.setWordWrap(True)
+            form.addRow(note)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        form.addRow(buttons)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        if not grade_edit.text().strip():
+            QMessageBox.warning(self, "物料规格", "请输入材质 / 牌号。")
+            return
+        payload = self._material_payload(
+            material,
+            grade_edit.text().strip(),
+            thickness_spin.value(),
+            spec_edit.text().strip(),
+            unit_edit.text().strip() or "张",
+            enabled_check.isChecked(),
+        )
+        if material:
+            if not payload:
+                QMessageBox.information(self, "物料规格", "没有需要保存的变更。")
+                return
+            material_id = int(material["id"])
+            self.page._run_api(
+                "正在更新物料规格...",
+                lambda: self.page.client.update_material(material_id, payload),
+                self._after_material_changed,
+            )
+        else:
+            self.page._run_api(
+                "正在新增物料规格...",
+                lambda: self.page.client.create_material(payload),
+                self._after_material_changed,
+            )
+
+    @staticmethod
+    def _material_payload(
+        material: Optional[Mapping[str, Any]],
+        material_grade: str,
+        thickness: float,
+        spec_description: str,
+        default_unit: str,
+        enabled: bool,
+    ) -> dict[str, Any]:
+        payload = {
+            "materialGrade": material_grade,
+            "thickness": thickness,
+            "specDescription": spec_description,
+            "defaultUnit": default_unit,
+            "enabled": enabled,
+        }
+        if material is None:
+            return payload
+
+        changed: dict[str, Any] = {}
+        if str(material.get("materialGrade") or "") != material_grade:
+            changed["materialGrade"] = material_grade
+        if abs(float(material.get("thickness") or 0) - thickness) > 0.000001:
+            changed["thickness"] = thickness
+        if str(material.get("specDescription") or "") != spec_description:
+            changed["specDescription"] = spec_description
+        if str(material.get("defaultUnit") or "") != default_unit:
+            changed["defaultUnit"] = default_unit
+        if bool(material.get("enabled")) != enabled:
+            changed["enabled"] = enabled
+        return changed
+
+    def _after_material_changed(self, _material: Mapping[str, Any]) -> None:
+        self.refresh()
+        self.page.refresh_all()
+
+    def _selected_material(self) -> Optional[Mapping[str, Any]]:
+        row = self.table.currentRow()
+        if row < 0:
+            return None
+        table_item = self.table.item(row, 0)
+        if table_item is None:
+            return None
+        material_id = table_item.data(Qt.ItemDataRole.UserRole)
+        for material in self.materials:
+            if int(material.get("id", 0)) == int(material_id or 0):
+                return material
+        return None
+
+    def _refresh_pagination_labels(self) -> None:
+        total_pages = self._total_pages()
+        self.total_label.setText(f"共 {self.total_items} 条")
+        self.page_label.setText(f"第 {self.current_page} / {total_pages} 页")
+        self.prev_page_btn.setEnabled(self.current_page > 1)
+        self.next_page_btn.setEnabled(self.current_page < total_pages)
+
+    def _total_pages(self) -> int:
+        if self.total_items <= 0:
+            return 1
+        return max(1, (self.total_items + self.page_size - 1) // self.page_size)
 
 
 class ResidualMaterialPage(QWidget):
@@ -160,10 +462,10 @@ class ResidualMaterialPage(QWidget):
         filter_grid.setHorizontalSpacing(10)
         filter_grid.setVerticalSpacing(8)
         self.inventory_code_filter = QLineEdit()
-        self.inventory_code_filter.setPlaceholderText("库存编码 / 扫码内容")
+        self.inventory_code_filter.setPlaceholderText("库存编码片段 / 扫码内容")
         self.inventory_code_filter.setMinimumWidth(170)
         self.material_grade_filter = QLineEdit()
-        self.material_grade_filter.setPlaceholderText("例如 Q235")
+        self.material_grade_filter.setPlaceholderText("材质 / 牌号模糊搜索")
         self.material_grade_filter.setMinimumWidth(120)
         self.thickness_filter = QDoubleSpinBox()
         self.thickness_filter.setRange(0.0, 1000.0)
@@ -234,14 +536,15 @@ class ResidualMaterialPage(QWidget):
         self.import_xlsx_btn.clicked.connect(self.preview_inventory_xlsx)
         self.export_xlsx_btn = QPushButton("导出 XLSX")
         self.export_xlsx_btn.clicked.connect(self.export_selected_inventory_xlsx)
-        self.add_material_btn = QPushButton("新增材质")
-        self.add_material_btn.clicked.connect(self._show_material_dialog)
+        self.material_specs_btn = QPushButton("物料规格")
+        self.material_specs_btn.clicked.connect(self._show_material_specs_dialog)
+        self.add_material_btn = self.material_specs_btn
         self.add_item_btn = QPushButton("新增库存项")
         self.add_item_btn.clicked.connect(lambda: self._show_inventory_dialog())
+        actions.addWidget(self.material_specs_btn)
         actions.addWidget(self.import_xlsx_btn)
         actions.addWidget(self.export_xlsx_btn)
         actions.addStretch()
-        actions.addWidget(self.add_material_btn)
         actions.addWidget(self.add_item_btn)
         group_layout.addLayout(actions)
 
@@ -407,40 +710,9 @@ class ResidualMaterialPage(QWidget):
             lambda content: self._on_export_xlsx_loaded(content, save_path),
         )
 
-    def _show_material_dialog(self) -> None:
-        dialog = QDialog(self)
-        dialog.setWindowTitle("新增材质")
-        form = QFormLayout(dialog)
-        grade_edit = QLineEdit()
-        thickness_spin = QDoubleSpinBox()
-        thickness_spin.setRange(0.01, 1000.0)
-        thickness_spin.setDecimals(2)
-        spec_edit = QLineEdit()
-        unit_edit = QLineEdit("sheet")
-        enabled_check = QCheckBox("启用")
-        enabled_check.setChecked(True)
-        form.addRow("材质牌号", grade_edit)
-        form.addRow("厚度", thickness_spin)
-        form.addRow("规格说明", spec_edit)
-        form.addRow("默认单位", unit_edit)
-        form.addRow("状态", enabled_check)
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        form.addRow(buttons)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
-        if not grade_edit.text().strip():
-            QMessageBox.warning(self, "新增材质", "请输入材质牌号。")
-            return
-        payload = {
-            "materialGrade": grade_edit.text().strip(),
-            "thickness": thickness_spin.value(),
-            "specDescription": spec_edit.text().strip(),
-            "defaultUnit": unit_edit.text().strip() or "sheet",
-            "enabled": enabled_check.isChecked(),
-        }
-        self._run_api("正在新增材质...", lambda: self.client.create_material(payload), self._after_create_material)
+    def _show_material_specs_dialog(self) -> None:
+        dialog = MaterialSpecDialog(self)
+        dialog.exec()
 
     def _show_inventory_dialog(self, item: Optional[Mapping[str, Any]] = None) -> None:
         if not self.materials:
@@ -754,6 +1026,7 @@ class ResidualMaterialPage(QWidget):
 
     def _inventory_query(self) -> dict[str, Any]:
         query: dict[str, Any] = {
+            "inventoryCode": self.inventory_code_filter.text().strip(),
             "inventoryType": self.inventory_type_filter.currentData(),
             "status": self.status_filter.currentData(),
             "reusable": self.reusable_filter.currentData(),

@@ -100,6 +100,53 @@ class RemoteApiClientTests(unittest.TestCase):
         self.assertIn("pageSize=20", request.full_url)
         self.assertEqual(page_data["meta"]["total"], 45)
 
+    def test_material_management_methods_use_material_endpoints(self):
+        client = RemoteApiClient(RemoteApiConfig(base_url="http://localhost:18080/", timeout_seconds=3))
+        client.set_session(RemoteApiSession("access-token", "refresh-token"))
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {
+                    "code": 200,
+                    "message": "success",
+                    "data": {"items": [], "meta": {"page": 1, "pageSize": 20, "total": 0}},
+                }
+            )
+            page_data = client.page_materials(
+                {"enabled": True, "materialGrade": "Q", "thickness": 2.5},
+                page=1,
+                page_size=20,
+            )
+
+        request = urlopen.call_args.args[0]
+        self.assertIn("/api/v1/materials/page", request.full_url)
+        self.assertIn("enabled=true", request.full_url)
+        self.assertIn("materialGrade=Q", request.full_url)
+        self.assertIn("thickness=2.5", request.full_url)
+        self.assertIn("page=1", request.full_url)
+        self.assertEqual(page_data["meta"]["total"], 0)
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"id": 1, "materialGrade": "Q235"}}
+            )
+            material = client.get_material(1)
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/materials/1")
+        self.assertEqual(material["id"], 1)
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"id": 1, "enabled": False}}
+            )
+            client.update_material(1, {"enabled": False})
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/materials/1")
+        self.assertEqual(request.get_method(), "PATCH")
+        self.assertEqual(json.loads(request.data.decode("utf-8")), {"enabled": False})
+
     def test_user_management_methods_use_user_endpoints(self):
         client = RemoteApiClient(RemoteApiConfig(base_url="http://localhost:18080/", timeout_seconds=3))
         client.set_session(RemoteApiSession("access-token", "refresh-token"))

@@ -107,8 +107,24 @@ class RemoteApiClient:
         query = {} if enabled is None else {"enabled": enabled}
         return list(self._request("GET", "/api/v1/materials", query=query))
 
+    def page_materials(
+        self,
+        query: Mapping[str, Any],
+        page: int = 1,
+        page_size: int = 20,
+    ) -> Mapping[str, Any]:
+        page_query = dict(query)
+        page_query.update({"page": page, "pageSize": page_size})
+        return self._request("GET", "/api/v1/materials/page", query=page_query)
+
+    def get_material(self, material_id: int) -> Mapping[str, Any]:
+        return self._request("GET", f"/api/v1/materials/{material_id}")
+
     def create_material(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         return self._request("POST", "/api/v1/materials", payload=payload)
+
+    def update_material(self, material_id: int, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self._request("PATCH", f"/api/v1/materials/{material_id}", payload=payload)
 
     def list_inventory_items(self, query: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         return list(self._request("GET", "/api/v1/inventory-items", query=query))

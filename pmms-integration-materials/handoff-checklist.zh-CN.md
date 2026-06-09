@@ -17,7 +17,12 @@
 - [ ] UI 页面不直接持久化真实密码。
 - [ ] 用户管理按 root / admin / 普通账户权限矩阵显示或禁用动作。
 - [ ] 用户列表使用 `GET /api/v1/users/page`，不要用全量列表做主表格。
+- [ ] 物料规格管理使用 `GET /api/v1/materials/page`，不要用全量列表做主表格。
+- [ ] 新增库存项的材质下拉使用 `GET /api/v1/materials?enabled=true`。
+- [ ] 物料规格启用 / 禁用调用 `PATCH /api/v1/materials/{id}` 并传 `enabled`。
+- [ ] 物料规格编辑如果收到 `material_in_use`，提示“该规格已用于库存，不能修改材质 / 牌号或厚度”。
 - [ ] 板材物料库存列表使用 `GET /api/v1/inventory-items/page`，不要用全量列表做主表格。
+- [ ] 库存筛选直接把 `materialGrade` / `inventoryCode` 传给后端；模糊匹配由后端完成，不做本地二次过滤。
 - [ ] 板材物料库存表格显示 `inventoryCode`，导出时用它填充 `板材名称` 列。
 - [ ] 删除用户调用 `DELETE /users/{username}`，并按 `status=disabled` 处理。
 - [ ] 修改自己密码必须要求旧密码；重置下级用户密码不要求旧密码。
@@ -42,16 +47,19 @@
 8. root/admin 会话：`PATCH /api/v1/users/{username}/password`。
 9. root/admin 会话：`DELETE /api/v1/users/{username}`。
 10. 用户本人会话：`PATCH /api/v1/users/{username}/password`，带 `oldPassword`。
-11. `GET /api/v1/materials?enabled=true`。
+11. `GET /api/v1/materials/page?page=1&pageSize=20`。
 12. `POST /api/v1/materials`。
-13. `GET /api/v1/inventory-items/page?status=available&page=1&pageSize=20`。
-14. `POST /api/v1/inventory-items`。
-15. `PATCH /api/v1/inventory-items/{id}`。
-16. `POST /api/v1/inventory-items/{id}/void`。
-17. `GET /api/v1/inventory-items/by-code?inventoryCode=...`。
-18. `POST /api/v1/inventory-items/import-xlsx?dryRun=true`。
-19. `POST /api/v1/inventory-items/import-xlsx?dryRun=false`。
-20. `POST /api/v1/inventory-items/export-xlsx`。
+13. `GET /api/v1/materials/{id}`。
+14. `PATCH /api/v1/materials/{id}`。
+15. `GET /api/v1/materials?enabled=true`。
+16. `GET /api/v1/inventory-items/page?status=available&page=1&pageSize=20`。
+17. `POST /api/v1/inventory-items`。
+18. `PATCH /api/v1/inventory-items/{id}`。
+19. `POST /api/v1/inventory-items/{id}/void`。
+20. `GET /api/v1/inventory-items/by-code?inventoryCode=...`。
+21. `POST /api/v1/inventory-items/import-xlsx?dryRun=true`。
+22. `POST /api/v1/inventory-items/import-xlsx?dryRun=false`。
+23. `POST /api/v1/inventory-items/export-xlsx`。
 
 ## 后端验证
 

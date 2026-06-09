@@ -253,6 +253,96 @@
       }
     }
   },
+  "pageMaterials": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/materials/page",
+      "query": {
+        "page": 1,
+        "pageSize": 20,
+        "enabled": true,
+        "materialGrade": "Q",
+        "thickness": 2.5
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "items": [
+          {
+            "id": 1,
+            "materialGrade": "Q235",
+            "thickness": 2.5,
+            "specDescription": "冷轧板",
+            "defaultUnit": "张",
+            "enabled": true
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "pageSize": 20,
+          "total": 1
+        }
+      }
+    }
+  },
+  "getMaterial": {
+    "request": {
+      "method": "GET",
+      "path": "/api/v1/materials/1"
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "id": 1,
+        "materialGrade": "Q235",
+        "thickness": 2.5,
+        "specDescription": "冷轧板",
+        "defaultUnit": "张",
+        "enabled": true
+      }
+    }
+  },
+  "updateMaterial": {
+    "request": {
+      "method": "PATCH",
+      "path": "/api/v1/materials/1",
+      "json": {
+        "specDescription": "冷轧板",
+        "defaultUnit": "张",
+        "enabled": false
+      }
+    },
+    "response": {
+      "code": 200,
+      "message": "success",
+      "data": {
+        "id": 1,
+        "materialGrade": "Q235",
+        "thickness": 2.5,
+        "specDescription": "冷轧板",
+        "defaultUnit": "张",
+        "enabled": false
+      }
+    }
+  },
+  "updateMaterialInUseForbidden": {
+    "request": {
+      "method": "PATCH",
+      "path": "/api/v1/materials/1",
+      "json": {
+        "materialGrade": "Q235B"
+      }
+    },
+    "response": {
+      "code": 400,
+      "message": "material_in_use",
+      "data": null,
+      "errorCode": "material_in_use"
+    }
+  },
   "listInventoryItems": {
     "request": {
       "method": "GET",

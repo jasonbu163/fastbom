@@ -70,6 +70,15 @@ status = available
 
 默认不限制 `inventoryType`，让页面展示整板和余料；用户可通过筛选项切换“整板 / 余料”。
 
+筛选语义：
+
+- `materialGrade`：后端模糊匹配，输入 `tes` 可匹配 `test`。
+- `inventoryCode`：后端模糊匹配，适合按库存编码片段定位。
+- `thickness`：精确匹配，不做文本模糊。
+- `status`、`inventoryType`、`reusable`、`materialId`：精确匹配。
+- `minWidth`、`minLength`：大于等于筛选。
+- Qt 页面只把筛选值传给 `GET /api/v1/inventory-items/page`，不要在本地表格数据上再做二次过滤。
+
 ### 表格列
 
 推荐列：
@@ -161,8 +170,46 @@ GET /api/v1/inventory-items/page?status=available&page=1&pageSize=20
 批量操作区建议：
 
 ```text
-导入 XLSX | 导出 XLSX
+物料规格 | 导入 XLSX | 导出 XLSX
 ```
+
+### 物料规格管理
+
+当前 Qt 前端已经有“板材物料库存管理”一级页面，不建议再新增“物料规格管理”一级菜单。
+建议在本页面工具栏放一个“物料规格”按钮，打开管理弹窗。
+
+弹窗结构：
+
+- 顶部筛选：材质 / 牌号、厚度、启用状态。
+- 主表格：材质 / 牌号、厚度、规格说明、默认单位、启用状态、操作。
+- 操作按钮：新增、编辑、启用 / 禁用。
+
+推荐接口：
+
+```text
+GET /api/v1/materials/page?page=1&pageSize=20
+POST /api/v1/materials
+PATCH /api/v1/materials/{materialId}
+GET /api/v1/materials/{materialId}
+```
+
+编辑规则：
+
+- 已被库存项引用的规格，不允许修改 `materialGrade` / `thickness`。
+- 已引用规格仍允许修改 `specDescription`、`defaultUnit`、`enabled`。
+- 禁用规格不应出现在“新增库存项”的默认材质下拉框中，但历史库存仍照常显示。
+- 不做删除按钮；现场误建规格先禁用。
+- 首版前端可以不预先判断规格是否被库存引用；用户保存后如果后端返回
+  `material_in_use`，弹出提示“该规格已用于库存，不能修改材质 / 牌号或厚度”。
+- 如果后续要优化体验，可以在编辑弹窗旁边加说明文案：已用于库存的规格只能改说明、
+  默认单位和启用状态。
+
+新增库存项表单中的“材质”字段建议使用可搜索下拉框：
+
+- 默认调用 `GET /api/v1/materials?enabled=true` 加载可用规格。
+- 显示文本建议为 `{materialGrade} / {thickness}mm`。
+- 选中后提交 `materialId`。
+- 下拉旁边提供 `+` 快速新增规格按钮，新增成功后刷新下拉并自动选中新规格。
 
 交互细节：
 
@@ -213,7 +260,10 @@ GET /api/v1/inventory-items/by-code?inventoryCode=<库存编码>
 login(username: str, password: str) -> TokenSession
 get_current_user() -> User
 list_materials(enabled: bool | None = True) -> list[Material]
+page_materials(query: MaterialQuery, page: int, page_size: int) -> PageData[Material]
+get_material(material_id: int) -> Material
 create_material(payload: MaterialCreate) -> Material
+update_material(material_id: int, payload: MaterialUpdate) -> Material
 page_inventory_items(query: InventoryQuery, page: int, page_size: int) -> PageData[InventoryItem]
 create_inventory_item(payload: InventoryCreate) -> InventoryItem
 update_inventory_item(item_id: int, payload: InventoryUpdate) -> InventoryItem

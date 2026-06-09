@@ -9,7 +9,8 @@ from PySide6.QtWidgets import QApplication
 
 from auth.session import AuthSession
 from config import AppSettings
-from gui.pages.residual_material_page import ResidualMaterialPage
+from gui.pages.residual_material_page import ApiCallWorker, MaterialSpecDialog, ResidualMaterialPage
+from services import RemoteApiResponseError
 
 
 class ResidualMaterialPageAuthTests(unittest.TestCase):
@@ -35,6 +36,7 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
 
         self.assertFalse(page.refresh_btn.isEnabled())
         self.assertFalse(page.add_material_btn.isEnabled())
+        self.assertFalse(page.material_specs_btn.isEnabled())
         self.assertIn("离线", page.login_state_label.text())
 
     def test_backend_user_enables_remote_actions_and_sets_client_session(self):
@@ -48,8 +50,105 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
 
         self.assertTrue(page.refresh_btn.isEnabled())
         self.assertTrue(page.add_material_btn.isEnabled())
+        self.assertEqual(page.material_specs_btn.text(), "物料规格")
         self.assertEqual(page.client.session.access_token, "access-token")
         self.assertIn("操作员", page.user_label.text())
+
+    def test_material_spec_dialog_loads_paginated_materials(self):
+        remote_session = AuthSession.backend_user(
+            username="operator",
+            access_token="access-token",
+            refresh_token="refresh-token",
+        )
+        page = ResidualMaterialPage(settings=AppSettings(), auth_session=remote_session)
+        calls = []
+
+        def run_api(status, call, on_success):
+            calls.append(status)
+            on_success(
+                {
+                    "items": [
+                        {
+                            "id": 1,
+                            "materialGrade": "Q235",
+                            "thickness": 2.5,
+                            "specDescription": "冷轧板",
+                            "defaultUnit": "张",
+                            "enabled": True,
+                        }
+                    ],
+                    "meta": {"page": 1, "pageSize": 20, "total": 1},
+                }
+            )
+
+        page._run_api = run_api
+
+        dialog = MaterialSpecDialog(page)
+
+        self.assertIn("正在刷新物料规格...", calls)
+        self.assertEqual(dialog.table.rowCount(), 1)
+        self.assertEqual(dialog.table.item(0, 0).text(), "Q235")
+        self.assertEqual(dialog.table.item(0, 4).text(), "启用")
+        self.assertEqual(dialog.total_label.text(), "共 1 条")
+        dialog.table.selectRow(0)
+        self.assertEqual(dialog._selected_material()["id"], 1)
+
+    def test_material_spec_dialog_query_uses_filters(self):
+        remote_session = AuthSession.backend_user(
+            username="operator",
+            access_token="access-token",
+            refresh_token="refresh-token",
+        )
+        page = ResidualMaterialPage(settings=AppSettings(), auth_session=remote_session)
+        page._run_api = lambda _status, _call, on_success: on_success(
+            {"items": [], "meta": {"page": 1, "pageSize": 20, "total": 0}}
+        )
+        dialog = MaterialSpecDialog(page)
+        dialog.grade_filter.setText("Q")
+        dialog.thickness_filter.setValue(2.5)
+        dialog.enabled_filter.setCurrentIndex(dialog.enabled_filter.findData(True))
+
+        query = dialog._query()
+
+        self.assertEqual(query["materialGrade"], "Q")
+        self.assertEqual(query["thickness"], 2.5)
+        self.assertTrue(query["enabled"])
+
+    def test_material_edit_payload_only_includes_changed_fields(self):
+        material = {
+            "id": 1,
+            "materialGrade": "Q235",
+            "thickness": 2.5,
+            "specDescription": "冷轧板",
+            "defaultUnit": "张",
+            "enabled": True,
+        }
+
+        payload = MaterialSpecDialog._material_payload(
+            material,
+            "Q235",
+            2.5,
+            "冷轧板-更新",
+            "张",
+            True,
+        )
+
+        self.assertEqual(payload, {"specDescription": "冷轧板-更新"})
+
+    def test_material_in_use_error_is_operator_readable(self):
+        worker = ApiCallWorker(
+            1,
+            lambda: (_ for _ in ()).throw(
+                RemoteApiResponseError("material_in_use", error_code="material_in_use")
+            ),
+        )
+        messages = []
+        worker.failed.connect(messages.append)
+
+        worker.run()
+
+        self.assertIn("该规格已用于库存", messages[0])
+        self.assertIn("material_in_use", messages[0])
 
     def test_inventory_page_response_updates_table_and_pagination(self):
         remote_session = AuthSession.backend_user(
@@ -237,7 +336,9 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
 
         self.assertEqual(query["inventoryType"], "")
         self.assertEqual(query["status"], "available")
-        self.assertNotIn("inventoryCode", query)
+        self.assertEqual(query["inventoryCode"], "RM:CODE")
+        self.assertEqual(page.inventory_code_filter.placeholderText(), "库存编码片段 / 扫码内容")
+        self.assertEqual(page.material_grade_filter.placeholderText(), "材质 / 牌号模糊搜索")
 
     def test_inventory_type_filter_adds_query_value_when_selected(self):
         remote_session = AuthSession.backend_user(

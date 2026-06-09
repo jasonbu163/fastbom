@@ -171,7 +171,29 @@ POST /api/v1/auth/logout
 }
 ```
 
-## 材质主数据
+## 物料规格 / 材质主数据
+
+`materials` 表示板材物料规格主数据。Qt 页面上建议显示为“物料规格”或“材质管理”，
+不要新增一个一级侧边栏页面；从“板材物料库存管理”页的工具栏打开管理弹窗即可。
+
+字段说明：
+
+```json
+{
+  "id": 1,
+  "materialGrade": "Q235",
+  "thickness": 2.5,
+  "specDescription": "冷轧板",
+  "defaultUnit": "张",
+  "enabled": true
+}
+```
+
+- `materialGrade + thickness` 唯一。
+- `enabled=false` 表示禁用，不从新增库存项的默认下拉选项中展示。
+- 不提供删除接口；已使用过的规格应禁用，而不是物理删除。
+- 如果材料已被库存项引用，后端不允许修改 `materialGrade` / `thickness`，避免历史库存含义改变。
+- 已引用材料仍允许修改 `specDescription`、`defaultUnit`、`enabled`。
 
 ### 列表
 
@@ -189,6 +211,63 @@ GET /api/v1/materials?enabled=true
   "specDescription": "Laser cutting sheet",
   "defaultUnit": "sheet",
   "enabled": true
+}
+```
+
+这个全量列表只适合新增库存项的下拉选项。物料规格管理弹窗应优先使用分页接口。
+
+### 分页
+
+```text
+GET /api/v1/materials/page?page=1&pageSize=20&enabled=true&materialGrade=Q&thickness=2.5
+```
+
+支持查询参数：
+
+```text
+page
+pageSize
+enabled
+materialGrade
+thickness
+```
+
+成功响应 `data`：
+
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "materialGrade": "Q235",
+      "thickness": 2.5,
+      "specDescription": "冷轧板",
+      "defaultUnit": "张",
+      "enabled": true
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "pageSize": 20,
+    "total": 1
+  }
+}
+```
+
+### 详情
+
+```text
+GET /api/v1/materials/{materialId}
+```
+
+找不到返回业务错误：
+
+```json
+{
+  "code": 400,
+  "message": "material_not_found",
+  "data": null,
+  "errorCode": "material_not_found"
 }
 ```
 
@@ -214,7 +293,43 @@ POST /api/v1/materials
 
 - `materialGrade + thickness` 唯一。
 - 板材物料库存项新增前必须有对应 `materialId`。
-- Qt 可以先做“选择已有材质”，再补“快速新增材质”按钮。
+- 重复规格返回 `material_already_exists`。
+- Qt 新增库存项时应先做“选择已有规格”，旁边提供“+ 新增规格”快速入口。
+
+### 更新 / 启用 / 禁用
+
+```text
+PATCH /api/v1/materials/{materialId}
+```
+
+请求可以只传变更字段：
+
+```json
+{
+  "specDescription": "冷轧板",
+  "defaultUnit": "张",
+  "enabled": false
+}
+```
+
+如果材料还没有被库存项引用，也可以修改关键规格：
+
+```json
+{
+  "materialGrade": "Q235B",
+  "thickness": 3.0
+}
+```
+
+注意：
+
+- 启用 / 禁用直接传 `enabled=true/false`，没有单独的 delete 接口。
+- 如果已被库存项引用，再修改 `materialGrade` / `thickness` 会返回 `material_in_use`。
+- 如果修改后与其他材料重复，会返回 `material_already_exists`。
+- Qt 端不需要提前判断材料是否已被库存引用；普通编辑直接提交 `PATCH`，如果收到
+  `material_in_use`，提示“该规格已用于库存，不能修改材质 / 牌号或厚度”。
+- Qt 编辑弹窗可以始终展示 `materialGrade` / `thickness` 输入框；是否禁用由 UI 体验决定，
+  但最终以后端返回为准。
 
 ## 板材物料库存
 
@@ -237,6 +352,18 @@ minLength
 materialGrade
 thickness
 ```
+
+筛选匹配规则：
+
+- `inventoryCode`：模糊匹配，适合在主表搜索框输入编码片段。
+- `materialGrade`：模糊匹配，适合输入部分材质 / 牌号。
+- `materialId`、`inventoryType`、`status`、`reusable`、`thickness`：精确匹配。
+- `minWidth`、`minLength`：下限范围匹配。
+
+实现说明：
+
+- `/inventory-items` 和 `/inventory-items/page` 的筛选参数由后端 API 层传给 service 层，再由 CRUD 层拼接 SQL。
+- `materialGrade` 和 `inventoryCode` 的 `LIKE` 模糊匹配在后端 CRUD 层完成，Qt 端只需要按参数名传值，不要再做本地二次过滤。
 
 库存列表常用查询：
 
