@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import QObject, QThread, Signal
 from PySide6.QtWidgets import (
     QDialog,
     QFormLayout,
@@ -19,6 +20,26 @@ from config.app_metadata import APP_NAME, window_title_with_version
 from services.auth_service import AuthError, AuthService
 
 
+class LoginWorker(QObject):
+    finished = Signal(object)
+    failed = Signal(str)
+    done = Signal()
+
+    def __init__(self, login_call):
+        super().__init__()
+        self.login_call = login_call
+
+    def run(self) -> None:
+        try:
+            self.finished.emit(self.login_call())
+        except AuthError as exc:
+            self.failed.emit(str(exc))
+        except Exception as exc:
+            self.failed.emit(f"登录失败：{exc}")
+        finally:
+            self.done.emit()
+
+
 class LoginDialog(QDialog):
     def __init__(self, auth_service: AuthService, settings: AppSettings, settings_store):
         super().__init__()
@@ -26,6 +47,8 @@ class LoginDialog(QDialog):
         self.settings = settings
         self.settings_store = settings_store
         self.auth_session: AuthSession | None = None
+        self._login_thread: QThread | None = None
+        self._login_worker: LoginWorker | None = None
 
         self.setWindowTitle(window_title_with_version())
         self.setFixedWidth(560)
@@ -67,6 +90,7 @@ class LoginDialog(QDialog):
         self.fallback_login_btn = QPushButton("离线登录")
         self.fallback_login_btn.clicked.connect(self._login_fallback)
         cancel_btn = QPushButton("取消")
+        self.cancel_btn = cancel_btn
         cancel_btn.clicked.connect(self.reject)
         actions.addWidget(self.backend_login_btn)
         actions.addWidget(self.fallback_login_btn)
@@ -74,7 +98,7 @@ class LoginDialog(QDialog):
         layout.addLayout(actions)
 
     def _login_backend(self) -> None:
-        self._login(
+        self._login_async(
             lambda: self.auth_service.login_backend_user(
                 self.username_edit.text().strip(),
                 self.password_edit.text(),
@@ -96,6 +120,45 @@ class LoginDialog(QDialog):
             QMessageBox.warning(self, "登录失败", str(exc))
             return
         self.accept()
+
+    def _login_async(self, login_call) -> None:
+        if self._login_thread is not None:
+            return
+
+        self._set_login_pending(True)
+        thread = QThread(self)
+        worker = LoginWorker(login_call)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._on_login_success)
+        worker.failed.connect(self._on_login_failed)
+        worker.done.connect(thread.quit)
+        worker.done.connect(worker.deleteLater)
+        thread.finished.connect(self._cleanup_login_worker)
+        thread.finished.connect(thread.deleteLater)
+        self._login_thread = thread
+        self._login_worker = worker
+        thread.start()
+
+    def _on_login_success(self, auth_session: AuthSession) -> None:
+        self.auth_session = auth_session
+        self.accept()
+
+    def _on_login_failed(self, message: str) -> None:
+        QMessageBox.warning(self, "登录失败", message)
+
+    def _cleanup_login_worker(self) -> None:
+        self._login_thread = None
+        self._login_worker = None
+        self._set_login_pending(False)
+
+    def _set_login_pending(self, pending: bool) -> None:
+        self.backend_login_btn.setEnabled(not pending)
+        self.fallback_login_btn.setEnabled(not pending)
+        self.cancel_btn.setEnabled(not pending)
+        self.username_edit.setEnabled(not pending)
+        self.password_edit.setEnabled(not pending)
+        self.backend_login_btn.setText("正在登录..." if pending else "登录")
 
     def _show_settings_dialog(self) -> None:
         dialog = QDialog(self)
