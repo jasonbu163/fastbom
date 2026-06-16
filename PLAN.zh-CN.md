@@ -3,11 +3,11 @@
 > 本计划与 `PLAN.md` 双语同步。项目方向变化时，两个文件应保持一致。
 
 **目标：** 将 FastBOM 从一个已经跑通的单工作流桌面工具，演进为更通用的
-AIIS 风格本地桌面应用：具备可配置 Qt 设置、清晰页面边界，并为未来远程 API
-表单能力打好基础。
+AIIS 风格本地桌面应用：具备可配置 Qt 设置、清晰页面边界，并支撑 PMMS
+后端业务工作流。
 
 **判断：** 第一阶段先做 Qt 应用设置是合理的。它能先减少硬编码假设，
-给未来远程 API 页面提供稳定配置来源，而且初始改动足够小，不需要立刻触碰
+给后续 PMMS 远程页面提供稳定配置来源，而且初始改动足够小，不需要立刻触碰
 SolidWorks 转换主链路。
 
 ## 当前基线
@@ -35,11 +35,13 @@ config/
 gui/
   main_window.py           # 侧边栏/页面外壳
   pages/
-    remote_form_page.py
+    local_processing_page.py
+    residual_material_page.py
+    user_management_page.py
     settings_page.py
 
 services/
-  remote_api.py            # 未来 GET/POST 客户端
+  remote_api.py            # 后端认证、用户、物料规格和库存客户端
 
 core/
   bom_classifier.py
@@ -157,40 +159,65 @@ uv run python main.py
 - 保存设置通过 `QSettings` 写入。
 - 执行现有 worker 任务时 UI 仍保持响应。
 
-## 第三阶段：远程 API 表单页
+## 第三阶段：后端认证、板材物料库存与用户管理
 
-**目的：** 在设置和导航稳定后，新增远程 GET/POST 表单工作流。
+**状态：** 已从通用远程表单目标收敛为 PMMS 后端对接页面。当前已落地：
+后端登录会话、板材物料库存管理、物料规格管理、用户管理、分页列表、XLSX
+导入导出，以及库存入库/扣减动作。
+
+**目的：** 将远程能力从演示表单推进到现场可用的 PMMS 操作页，并保持 UI
+与 HTTP 契约分离。
 
 **范围：**
 
-- 实现页面和客户端前，先读取后端 `openapi.json`。
-- 新增远程表单页面。
-- 新增 HTTP service/client 边界。
+- 按 `pmms-integration-materials/` 中的对接材料维护客户端契约。
+- 新增后端认证登录流程，并在主窗口关闭时执行后端登出。
+- 新增板材物料库存管理页，作为原“余料管理”的扩展概念。
+- 新增用户管理页，支持后端账号分页、创建、编辑、禁用和密码更新。
+- 在 `services/remote_api.py` 维护 HTTP service/client 边界。
 - 使用配置化后端 API base URL 和超时。
-- 新增普通用户的后端认证登录流程。
 - 只允许从本机 Qt 设置使用兜底 `admin` 登录。
 - 记录后端的保底最高权限账号不是这个 `admin` 账号。
-- 如果客户端会话使用兜底 `admin` 强制登录，必须禁用远程表单工作流。
+- 如果客户端会话使用兜底 `admin` 强制登录，必须禁用远程库存和用户管理工作流。
 - 在 UI 中展示请求状态、响应摘要和错误反馈。
-- 静态样例只能短期存在，真实接口接入后应清理。
+- 库存列表使用后端分页接口，默认筛选可用库存，库存编码和材质支持模糊查询。
+- 物料规格从库存页独立管理，材质 / 厚度被库存引用时由后端拒绝关键字段修改。
+- 库存数量的正常变化必须走“入库”和“扣减 / 领用”动作；编辑库存项中的数量仅作为人工修正台账。
+- XLSX 导入预览应显示新增、更新、错误、使用数量和新增数量。
 
 **建议文件：**
 
-- 新增：`services/__init__.py`。
-- 新增：`services/remote_api.py`。
-- 新增：`gui/pages/remote_form_page.py`。
+- 修改：`services/remote_api.py`。
+- 新增/修改：`gui/pages/residual_material_page.py`。
+- 新增/修改：`gui/pages/user_management_page.py`。
 - 修改：`gui/main_window.py`。
 - 修改：`config/settings.py`。
+- 修改：`tests/test_remote_api.py`。
+- 修改：`tests/test_residual_material_page_auth.py`。
+- 修改：`tests/test_user_management_page.py`。
 
 **验收标准：**
 
-- GET 和 POST 操作不阻塞 UI。
+- 远程 GET、POST、PATCH、DELETE 操作不阻塞 UI。
 - URL 和超时不硬编码在页面里。
 - 普通登录凭据通过后端 API 契约获取。
 - 兜底 admin 凭据不能出现在已跟踪文件、日志或 UI 展示中。
-- 兜底 admin 会话下禁用远程表单。
+- 兜底 admin 会话下禁用远程库存和用户管理动作。
 - service 模块负责请求构造和响应解析。
-- README 记录远程请求和响应结构。
+- 库存分页、筛选、定位库存编码、导入导出、入库、扣减 / 领用流程可用。
+- `consumed` 状态显示为“已耗尽”，可通过入库恢复可用库存；不可再执行扣减。
+- 用户管理只允许具备后端管理权限的账号执行创建、编辑、禁用和密码管理。
+- README 和 BUILD 记录远程库存、物料规格和用户管理的操作与验证边界。
+
+**验证：**
+
+```bash
+uv run python -m compileall main.py config core gui utils build.py
+uv run python -m unittest discover -s tests -p 'test_*.py'
+```
+
+现场联调时还应使用后端账号登录，验证分页刷新、物料规格维护、库存入库、
+库存扣减 / 领用、XLSX 导入导出和用户管理。
 
 ## 第四阶段：AIIS 桌面端 Skill 候选
 
@@ -220,5 +247,5 @@ uv run python main.py
 - **Gate 2：** QSettings 持久化设置已文档化。
 - **Gate 3：** 现有本地流程在 Windows + SolidWorks 上仍可用。
 - **Gate 4：** 侧边栏/页面拆分后首屏仍有真实工作面。
-- **Gate 5：** 远程 API 页面使用设置/service 边界。
+- **Gate 5：** 远程 PMMS 页面使用设置/service 边界，并完成库存和用户管理验收。
 - **Gate 6：** 可复用桌面端规则有足够证据进入未来 skill。

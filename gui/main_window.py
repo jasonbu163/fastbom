@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self._logout_attempted = False
 
         self.setWindowTitle(window_title_with_version())
-        self.setMinimumSize(1100, 760)
+        self.setMinimumSize(1360, 820)
 
         icon_path = Path("static/efficacy_researching_settings_icon_152066.ico")
         if icon_path.exists():

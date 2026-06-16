@@ -148,6 +148,12 @@ class RemoteApiClient:
     def void_inventory_item(self, item_id: int) -> Mapping[str, Any]:
         return self._request("POST", f"/api/v1/inventory-items/{item_id}/void")
 
+    def stock_in_inventory_item(self, item_id: int, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self._request("POST", f"/api/v1/inventory-items/{item_id}/stock-in", payload=payload)
+
+    def consume_inventory_item(self, item_id: int, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self._request("POST", f"/api/v1/inventory-items/{item_id}/consume", payload=payload)
+
     def get_inventory_item_by_code(self, inventory_code: str) -> Mapping[str, Any]:
         return self._request(
             "GET",

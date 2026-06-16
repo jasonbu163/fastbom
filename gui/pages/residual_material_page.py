@@ -40,7 +40,7 @@ from services import (
 STATUS_LABELS = {
     "available": "可用",
     "reserved": "已占用",
-    "consumed": "已消耗",
+    "consumed": "已耗尽",
     "scrapped": "已报废",
     "voided": "已作废",
 }
@@ -54,6 +54,8 @@ REMOTE_ERROR_MESSAGES = {
     "material_in_use": "该规格已用于库存，不能修改材质 / 牌号或厚度。",
     "material_already_exists": "已存在相同材质 / 牌号和厚度的物料规格。",
     "material_not_found": "物料规格不存在或已被移除。",
+    "invalid_inventory_status": "当前库存状态不允许执行该操作。",
+    "invalid_inventory_quantity": "库存数量无效，请检查本次数量。",
 }
 
 
@@ -89,6 +91,14 @@ class SortableTableWidgetItem(QTableWidgetItem):
         if left is not None and right is not None:
             return float(left) < float(right)
         return self.text() < other.text()
+
+
+class SelectAllCheckBox(QCheckBox):
+    def nextCheckState(self) -> None:
+        if self.checkState() == Qt.CheckState.Checked:
+            self.setCheckState(Qt.CheckState.Unchecked)
+        else:
+            self.setCheckState(Qt.CheckState.Checked)
 
 
 class MaterialSpecDialog(QDialog):
@@ -410,6 +420,7 @@ class ResidualMaterialPage(QWidget):
         self._worker_callbacks: dict[int, Callable[[Any], None]] = {}
         self._next_worker_id = 0
         self._closing = False
+        self._updating_select_all_checkbox = False
 
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -503,6 +514,13 @@ class ResidualMaterialPage(QWidget):
         self.reset_filters_btn.clicked.connect(self.reset_filters)
         self.locate_code_btn = QPushButton("定位编码")
         self.locate_code_btn.clicked.connect(self.locate_inventory_code)
+
+        filter_actions = QHBoxLayout()
+        filter_actions.addStretch()
+        filter_actions.addWidget(self.locate_code_btn)
+        filter_actions.addWidget(self.apply_filters_btn)
+        filter_actions.addWidget(self.reset_filters_btn)
+
         filter_grid.addWidget(QLabel("编码"), 0, 0)
         filter_grid.addWidget(self.inventory_code_filter, 0, 1)
         filter_grid.addWidget(QLabel("类型"), 0, 2)
@@ -519,12 +537,10 @@ class ResidualMaterialPage(QWidget):
         filter_grid.addWidget(self.min_width_filter, 1, 5)
         filter_grid.addWidget(QLabel("最小长"), 1, 6)
         filter_grid.addWidget(self.min_length_filter, 1, 7)
-        filter_grid.addWidget(self.locate_code_btn, 1, 8)
-        filter_grid.addWidget(self.apply_filters_btn, 1, 9)
-        filter_grid.addWidget(self.reset_filters_btn, 1, 10)
         filter_grid.setColumnStretch(1, 1)
         filter_grid.setColumnStretch(7, 1)
         group_layout.addLayout(filter_grid)
+        group_layout.addLayout(filter_actions)
 
         request_row = QHBoxLayout()
         request_row.addWidget(QLabel("最近请求"))
@@ -544,10 +560,16 @@ class ResidualMaterialPage(QWidget):
         self.add_material_btn = self.material_specs_btn
         self.add_item_btn = QPushButton("新增库存项")
         self.add_item_btn.clicked.connect(lambda: self._show_inventory_dialog())
+        self.stock_in_btn = QPushButton("入库")
+        self.stock_in_btn.clicked.connect(self._stock_in_selected_item)
+        self.consume_btn = QPushButton("扣减 / 领用")
+        self.consume_btn.clicked.connect(self._consume_selected_item)
         actions.addWidget(self.material_specs_btn)
         actions.addWidget(self.import_xlsx_btn)
         actions.addWidget(self.export_xlsx_btn)
         actions.addStretch()
+        actions.addWidget(self.stock_in_btn)
+        actions.addWidget(self.consume_btn)
         actions.addWidget(self.add_item_btn)
         group_layout.addLayout(actions)
 
@@ -586,8 +608,10 @@ class ResidualMaterialPage(QWidget):
         header.setSortIndicatorShown(False)
         header.setStretchLastSection(False)
         self._apply_table_column_widths()
+        self._create_select_all_checkbox()
         self.table.verticalHeader().setVisible(False)
         self.table.setSortingEnabled(True)
+        self.table.itemChanged.connect(self._on_table_item_changed)
         group_layout.addWidget(self.table, 1)
         self.empty_label = QLabel("没有符合条件的库存项；可调整筛选或新增库存项。")
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -771,7 +795,11 @@ class ResidualMaterialPage(QWidget):
         form.addRow("宽", width_spin)
         form.addRow("长", length_spin)
         form.addRow("厚度", thickness_spin)
-        form.addRow("数量", quantity_spin)
+        if item:
+            note = QLabel("正常入库或扣减请使用表格上方按钮；此处数量仅用于人工修正台账。")
+            note.setWordWrap(True)
+            form.addRow(note)
+        form.addRow("总数量（人工修正）" if item else "初始数量", quantity_spin)
         form.addRow("备注", remark_edit)
         form.addRow("来源", source_edit)
         form.addRow("库位", location_edit)
@@ -841,6 +869,85 @@ class ResidualMaterialPage(QWidget):
             return
         self._show_inventory_dialog(item)
 
+    def _stock_in_selected_item(self) -> None:
+        item = self._selected_item()
+        if item is None:
+            QMessageBox.information(self, "入库", "请先选择一条库存项。")
+            return
+        if item.get("status") == "voided":
+            QMessageBox.warning(self, "入库", "已作废的库存项不能入库。")
+            return
+        self._show_inventory_delta_dialog(item, "stock_in")
+
+    def _consume_selected_item(self) -> None:
+        item = self._selected_item()
+        if item is None:
+            QMessageBox.information(self, "扣减 / 领用", "请先选择一条库存项。")
+            return
+        if item.get("status") not in {"available", "reserved"}:
+            QMessageBox.warning(self, "扣减 / 领用", "只有可用或已占用的库存项可以扣减。")
+            return
+        if int(item.get("quantity") or 0) <= 0:
+            QMessageBox.warning(self, "扣减 / 领用", "当前库存数量不足，不能扣减。")
+            return
+        self._show_inventory_delta_dialog(item, "consume")
+
+    def _show_inventory_delta_dialog(self, item: Mapping[str, Any], mode: str) -> None:
+        is_stock_in = mode == "stock_in"
+        title = "入库" if is_stock_in else "扣减 / 领用"
+        current_quantity = max(0, int(item.get("quantity") or 0))
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        form = QFormLayout(dialog)
+        form.addRow("库存编码", QLabel(str(item.get("inventoryCode") or "")))
+        form.addRow("规格", QLabel(self._inventory_spec_text(item)))
+        form.addRow("当前数量", QLabel(str(current_quantity)))
+        form.addRow("当前状态", QLabel(STATUS_LABELS.get(str(item.get("status")), str(item.get("status") or ""))))
+
+        quantity_spin = QSpinBox()
+        quantity_spin.setRange(1, 100000 if is_stock_in else max(1, current_quantity))
+        source_edit = QLineEdit("site-stock-in" if is_stock_in else "site-consume")
+        remark_edit = QLineEdit()
+        form.addRow("本次数量", quantity_spin)
+        form.addRow("来源", source_edit)
+
+        location_edit = QLineEdit(str(item.get("location") or ""))
+        reusable_check = QCheckBox("可复用")
+        reusable_check.setChecked(bool(item.get("reusable")))
+        if is_stock_in:
+            form.addRow("库位", location_edit)
+            form.addRow("可复用", reusable_check)
+        form.addRow("备注", remark_edit)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        form.addRow(buttons)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        payload: dict[str, Any] = {
+            "quantity": quantity_spin.value(),
+            "source": source_edit.text().strip() or ("site-stock-in" if is_stock_in else "site-consume"),
+            "remark": remark_edit.text().strip(),
+        }
+        item_id = int(item["id"])
+        if is_stock_in:
+            payload["location"] = location_edit.text().strip()
+            payload["reusable"] = reusable_check.isChecked()
+            self._run_api(
+                "正在入库...",
+                lambda: self.client.stock_in_inventory_item(item_id, payload),
+                self._after_inventory_changed,
+            )
+        else:
+            self._run_api(
+                "正在扣减库存...",
+                lambda: self.client.consume_inventory_item(item_id, payload),
+                self._after_inventory_changed,
+            )
+
     def _on_user_loaded(self, user: Mapping[str, Any]) -> None:
         self.current_user = user
         self.request_state_label.setText("已读取当前用户")
@@ -890,7 +997,8 @@ class ResidualMaterialPage(QWidget):
         preview_text = "\n".join(
             f"第 {row.get('rowNumber')} 行 {row.get('action')}：{row.get('materialGrade')} "
             f"{row.get('width')}x{row.get('length')}x{row.get('thickness')}，"
-            f"使用数量 {row.get('usedQuantity', 0)}，备注：{row.get('remark') or '无'}"
+            f"使用数量 {row.get('usedQuantity', 0)}，新增数量 {row.get('addedQuantity', 0)}，"
+            f"备注：{row.get('remark') or '无'}"
             for row in preview_rows[:8]
         )
         message = f"{summary}\n\n{preview_text}" if preview_text else summary
@@ -918,12 +1026,15 @@ class ResidualMaterialPage(QWidget):
 
     def _on_inventory_loaded(self, items: list[Mapping[str, Any]]) -> None:
         self.inventory_items = items
+        self._updating_select_all_checkbox = True
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(items))
         if not items:
             self.empty_label.setVisible(True)
             self.request_state_label.setText("库存列表为空")
             self.table.setSortingEnabled(True)
+            self._updating_select_all_checkbox = False
+            self._update_select_all_checkbox()
             return
         self.empty_label.setVisible(False)
         for row, item in enumerate(items):
@@ -967,6 +1078,8 @@ class ResidualMaterialPage(QWidget):
                     table_item.setData(Qt.ItemDataRole.UserRole + 1, self._date_sort_value(updated_at))
                 self.table.setItem(row, col, table_item)
         self.table.setSortingEnabled(True)
+        self._updating_select_all_checkbox = False
+        self._update_select_all_checkbox()
         self.request_state_label.setText(f"已加载 {len(items)} 条库存项")
 
     def _after_create_material(self, _material: Mapping[str, Any]) -> None:
@@ -1079,6 +1192,72 @@ class ResidualMaterialPage(QWidget):
                 items.append(item)
         return items
 
+    def _create_select_all_checkbox(self) -> None:
+        self.select_all_checkbox = SelectAllCheckBox(self.table.horizontalHeader().viewport())
+        self.select_all_checkbox.setTristate(True)
+        self.select_all_checkbox.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.select_all_checkbox.setToolTip("选择当前页库存项用于导出")
+        self.select_all_checkbox.stateChanged.connect(self._on_select_all_state_changed)
+        header = self.table.horizontalHeader()
+        header.sectionResized.connect(lambda *_args: self._position_select_all_checkbox())
+        self.table.horizontalScrollBar().valueChanged.connect(lambda _value: self._position_select_all_checkbox())
+        self._position_select_all_checkbox()
+
+    def _position_select_all_checkbox(self) -> None:
+        if not hasattr(self, "select_all_checkbox"):
+            return
+        header = self.table.horizontalHeader()
+        section_x = header.sectionViewportPosition(0)
+        section_width = header.sectionSize(0)
+        checkbox_size = 24
+        self.select_all_checkbox.setFixedSize(checkbox_size, checkbox_size)
+        x = section_x + max(0, (section_width - checkbox_size) // 2)
+        y = max(0, (header.height() - checkbox_size) // 2)
+        self.select_all_checkbox.move(x, y)
+        self.select_all_checkbox.raise_()
+        self.select_all_checkbox.show()
+
+    def _on_select_all_state_changed(self, state: int) -> None:
+        if self._updating_select_all_checkbox:
+            return
+        check_state = Qt.CheckState(state)
+        target_state = Qt.CheckState.Checked if check_state == Qt.CheckState.Checked else Qt.CheckState.Unchecked
+        self._set_current_page_check_state(target_state)
+
+    def _set_current_page_check_state(self, check_state: Qt.CheckState) -> None:
+        self._updating_select_all_checkbox = True
+        for row in range(self.table.rowCount()):
+            table_item = self.table.item(row, 0)
+            if table_item is not None:
+                table_item.setCheckState(check_state)
+        self._updating_select_all_checkbox = False
+        self._update_select_all_checkbox()
+
+    def _on_table_item_changed(self, table_item: QTableWidgetItem) -> None:
+        if self._updating_select_all_checkbox or table_item.column() != 0:
+            return
+        self._update_select_all_checkbox()
+
+    def _update_select_all_checkbox(self) -> None:
+        if not hasattr(self, "select_all_checkbox"):
+            return
+        total_rows = self.table.rowCount()
+        checked_rows = 0
+        for row in range(total_rows):
+            table_item = self.table.item(row, 0)
+            if table_item is not None and table_item.checkState() == Qt.CheckState.Checked:
+                checked_rows += 1
+        if total_rows == 0 or checked_rows == 0:
+            header_state = Qt.CheckState.Unchecked
+        elif checked_rows == total_rows:
+            header_state = Qt.CheckState.Checked
+        else:
+            header_state = Qt.CheckState.PartiallyChecked
+        self._updating_select_all_checkbox = True
+        self.select_all_checkbox.setEnabled(total_rows > 0)
+        self.select_all_checkbox.setCheckState(header_state)
+        self._updating_select_all_checkbox = False
+
     def _refresh_connection_labels(self) -> None:
         self.api_url_label.setText(self.settings.remote_api.base_url or "未配置")
         can_use_remote = self.auth_session.can_use_remote_features and self.client.session is not None
@@ -1096,6 +1275,8 @@ class ResidualMaterialPage(QWidget):
         self.add_item_btn.setEnabled(can_use_remote)
         self.import_xlsx_btn.setEnabled(can_use_remote)
         self.export_xlsx_btn.setEnabled(can_use_remote)
+        self.stock_in_btn.setEnabled(can_use_remote)
+        self.consume_btn.setEnabled(can_use_remote)
 
     @staticmethod
     def _group(title: str, layout: QFormLayout | QVBoxLayout) -> QGroupBox:
@@ -1199,3 +1380,14 @@ class ResidualMaterialPage(QWidget):
             if int(item.get("id", 0)) == item_id:
                 return item
         return None
+
+    @staticmethod
+    def _inventory_spec_text(item: Mapping[str, Any]) -> str:
+        parts: list[str] = []
+        if item.get("materialGrade"):
+            parts.append(str(item.get("materialGrade")))
+        if item.get("thickness"):
+            parts.append(f"{item.get('thickness')}mm")
+        if item.get("width") or item.get("length"):
+            parts.append(f"{item.get('width') or ''} x {item.get('length') or ''}")
+        return " / ".join(parts) or "-"

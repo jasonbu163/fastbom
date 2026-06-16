@@ -125,9 +125,17 @@ into tracked files or build documentation.
 - Start the executable on a clean Windows machine without source checkout.
 - Login with a backend account when remote material inventory is required.
 - Verify offline `admin` login still disables remote inventory actions.
+- Verify sheet material inventory pagination, filtering, and inventory-code
+  lookup.
+- Verify material specification creation/editing and backend protection for
+  specifications referenced by inventory.
+- Verify stock-in and consume actions instead of replacing quantity movement
+  with normal edits.
+- Verify XLSX import preview, confirmed import, and selected inventory export.
+- Verify an administrator account can open user management and create, edit, and
+  disable users.
 - Run a small BOM and SolidWorks drawing conversion.
 - Verify generated DXF classification, annotation, and merge output folders.
-- If remote inventory is enabled, verify list refresh and one edit operation.
 
 ## Common Failures
 

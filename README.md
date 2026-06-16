@@ -139,10 +139,11 @@ Recommended precedence:
 built-in defaults < QSettings persisted user settings < current form input
 ```
 
-## Remote API Authentication Direction
+## Remote PMMS Integration
 
-The remote API integration will be implemented after the backend `openapi.json`
-is available. The Qt client should follow the backend contract instead of
+The desktop client now integrates with PMMS backend authentication and provides
+sheet material inventory management and user management pages. The Qt client
+should follow the backend contracts in `pmms-integration-materials/` instead of
 inventing request or response shapes locally.
 
 Authentication rules:
@@ -154,9 +155,9 @@ Authentication rules:
   `QSettings`; it must not be written to tracked files or logs.
 - The backend's fallback highest-privilege account is not this `admin` account.
 - If the Qt client logs in with the offline `admin` identity, the remote
-  form feature must be disabled for that session.
-- Only a normal backend-authenticated user session may use the remote GET/POST
-  form workflow.
+  inventory and user-management features must be disabled for that session.
+- Only a normal backend-authenticated user session may use the remote inventory,
+  material-specification, and user-management workflows.
 - When the main window closes after a backend-authenticated login, the client
   should call backend logout with the current refresh token. Offline `admin`
   sessions do not call backend logout.
@@ -173,8 +174,8 @@ The offline account is intentionally simple and local-only:
 - Built-in default password is `#456@admin`.
 - The settings page only overwrites the local password when a new password is
   entered. Leaving the password field blank keeps the current value.
-- Logging in as offline `admin` opens the desktop app but disables remote
-  material-library features.
+- Logging in as offline `admin` opens the desktop app but disables remote sheet
+  material inventory and user-management features.
 
 Reset paths:
 
@@ -204,10 +205,11 @@ a page stack:
 - Local processing page with secondary workflow navigation:
   preparation/detection, classification conversion, DXF annotation, and DXF
   merging.
+- Sheet material inventory management page with paginated inventory, filters,
+  material specifications, XLSX import/export, stock-in, and consume actions.
 - Settings page.
-
-The remote API form page will be added after the backend `openapi.json` is
-available.
+- User management page for backend accounts when the current account has
+  management permissions.
 
 Navigation extension rules are documented in `docs/qt-navigation.md`.
 

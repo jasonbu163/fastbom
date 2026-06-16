@@ -125,3 +125,9 @@ dxf/
 
 # MacOS files
 .DS_Store
+
+# PMMS integration materials
+pmms-integration-materials/
+
+
+.local-links/

@@ -2,7 +2,8 @@
 
 FastBOM is an AIIS-flavored local desktop application. Treat it as a PySide6
 operator console for BOM-driven engineering-file processing, SolidWorks COM
-automation, DXF post-processing, and future remote API form submission.
+automation, DXF post-processing, PMMS sheet material inventory, and backend
+user management.
 
 ## Project Shape
 
@@ -45,8 +46,8 @@ automation, DXF post-processing, and future remote API form submission.
 - Do not rewrite local core business logic during the settings upgrade. Only
   make small compatibility edits where settings must be injected into existing
   behavior.
-- Future remote API code should live outside `MainWindow`, preferably in a
-  small service/client module such as `services/remote_api.py`.
+- Remote PMMS API code should live outside `MainWindow`, preferably in a small
+  service/client module such as `services/remote_api.py`.
 - Settings/config code lives in `config/settings.py`.
 - Project-level tools belong in `tools/`; they should not silently depend on GUI
   state.
@@ -56,13 +57,14 @@ automation, DXF post-processing, and future remote API form submission.
 - Do not keep adding more vertical "steps" to `MainWindow` once a new business
   page is introduced.
 - For multiple workflows, prefer a sidebar plus `QStackedWidget` page model:
-  local processing, remote form submission, and settings should be separate
-  pages.
+  local processing, sheet material inventory, user management, and settings
+  should be separate pages.
 - The current local processing workflow lives in
   `gui/pages/local_processing_page.py` and is hosted by the page stack in
   `MainWindow`.
 - New page modules should be small and named by workflow, for example
-  `gui/pages/remote_form_page.py` and `gui/pages/settings_page.py`.
+  `gui/pages/residual_material_page.py`, `gui/pages/user_management_page.py`,
+  and `gui/pages/settings_page.py`.
 - When adding a primary page or a local-processing subpage, follow
   `docs/qt-navigation.md`.
 - Long-running local workflow pages should keep logs visible, provide an
@@ -70,7 +72,7 @@ automation, DXF post-processing, and future remote API form submission.
   operator action.
 - Keep UI text practical and operator-facing. Avoid marketing language inside
   the application.
-- Any remote API page must show request status, response summary, and error
+- Any remote PMMS page must show request status, response summary, and error
   feedback without freezing the UI.
 
 ## Configuration Rules
@@ -93,21 +95,22 @@ automation, DXF post-processing, and future remote API form submission.
 
 - API URL, timeout, and authentication-related values must not be hard-coded in
   the page.
-- Keep GET and POST payload construction in a service/client boundary. The UI
-  should not manually concatenate URLs or serialize business payloads inline.
+- Keep GET, POST, PATCH, and DELETE payload construction in a service/client
+  boundary. The UI should not manually concatenate URLs or serialize business
+  payloads inline.
 - Follow the AIIS response shape when this project controls the server contract:
   `{"code": 200, "message": "success", "data": ...}`.
 - If the remote server uses a different contract, document the expected request
   and response shape in the service module and README.
-- Read the backend `openapi.json` before implementing the remote form page or
-  API client.
+- Read the backend contract material in `pmms-integration-materials/` before
+  implementing or changing remote PMMS pages or API client methods.
 - Normal login credentials must come from the backend API.
 - The offline `admin` username is fixed and must not be editable in the UI.
 - Its local password may be stored in local Qt settings only for diagnostics or
   bootstrap. Do not write offline credentials to tracked files or logs.
 - The backend's fallback highest-privilege account is not this `admin` account.
-- If the Qt client logs in with offline `admin`, disable the remote form
-  workflow for that session.
+- If the Qt client logs in with offline `admin`, disable remote inventory and
+  user-management workflows for that session.
 - Do not maintain long-lived mock APIs in the desktop app. Short-lived static
   samples are allowed only while the real endpoint is unavailable.
 

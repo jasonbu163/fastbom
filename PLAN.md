@@ -5,7 +5,7 @@
 
 **Goal:** Turn FastBOM from a working single-workflow desktop tool into a more
 general AIIS-style local desktop application with configurable Qt settings,
-clear page boundaries, and future remote API form support.
+clear page boundaries, and PMMS backend workflow support.
 
 **Recommendation:** Starting with Qt application settings is the right first
 stage. It reduces hard-coded assumptions before UI expansion, gives the future
@@ -39,11 +39,13 @@ config/
 gui/
   main_window.py           # sidebar/page shell
   pages/
-    remote_form_page.py
+    local_processing_page.py
+    residual_material_page.py
+    user_management_page.py
     settings_page.py
 
 services/
-  remote_api.py            # future GET/POST client
+  remote_api.py            # backend auth, users, material specs, and inventory client
 
 core/
   bom_classifier.py
@@ -171,45 +173,84 @@ that can hold multiple workflows.
 - Saving settings writes through `QSettings`.
 - The UI remains responsive during existing worker tasks.
 
-## Phase 3: Remote API Form Page
+## Phase 3: Backend Auth, Sheet Material Inventory, And User Management
 
-**Purpose:** Add the new page for remote GET/POST form workflows after settings
-and navigation are stable.
+**Status:** The generic remote form target has been narrowed into PMMS backend
+integration pages. The current implementation includes backend login sessions,
+sheet material inventory management, material specification management, user
+management, paginated lists, XLSX import/export, and stock-in/consume inventory
+actions.
+
+**Purpose:** Move remote functionality from a demo form into field-usable PMMS
+operator pages while keeping the UI separated from HTTP contracts.
 
 **Scope:**
 
-- Read the backend `openapi.json` before implementing the page or client.
-- Add a remote form page.
-- Add a service/client boundary for HTTP requests.
+- Maintain the client contract from `pmms-integration-materials/`.
+- Add backend-authenticated login and backend logout when the main window
+  closes.
+- Add the sheet material inventory page as the expanded concept that replaced
+  the earlier residual-material-only workflow.
+- Add the user management page for paginated backend accounts, creation,
+  editing, disabling, and password updates.
+- Keep HTTP request construction in `services/remote_api.py`.
 - Use configured backend API base URL and timeout.
-- Add backend-authenticated login flow for normal users.
 - Allow fallback `admin` login only from local Qt settings.
 - Record that the backend's fallback highest-privilege account is not this
   `admin` account.
-- Disable remote form workflows whenever the client session is force-logged in
-  with fallback `admin`.
+- Disable remote inventory and user-management workflows whenever the client
+  session is force-logged in with fallback `admin`.
 - Show request status, response summary, and error feedback in the UI.
-- Keep mock/static samples short-lived and remove them when the real endpoint is
-  connected.
+- Use backend pagination for inventory lists, default to available inventory,
+  and support fuzzy inventory-code and material-grade filters.
+- Manage material specifications separately from inventory; backend validation
+  rejects changing key material/thickness fields after inventory references
+  exist.
+- Use the stock-in and consume actions for normal quantity movement. Quantity in
+  the inventory edit dialog is only for manual ledger correction.
+- XLSX import preview should expose created, updated, errors, used quantity, and
+  added quantity.
 
 **Recommended files:**
 
-- Create: `services/__init__.py`.
-- Create: `services/remote_api.py`.
-- Create: `gui/pages/remote_form_page.py`.
+- Modify: `services/remote_api.py`.
+- Create/modify: `gui/pages/residual_material_page.py`.
+- Create/modify: `gui/pages/user_management_page.py`.
 - Modify: `gui/main_window.py`.
 - Modify: `config/settings.py`.
+- Modify: `tests/test_remote_api.py`.
+- Modify: `tests/test_residual_material_page_auth.py`.
+- Modify: `tests/test_user_management_page.py`.
 
 **Acceptance criteria:**
 
-- GET and POST actions do not block the UI.
+- Remote GET, POST, PATCH, and DELETE actions do not block the UI.
 - URL and timeout are not hard-coded in the page.
 - Normal credentials are obtained through the backend API contract.
 - Fallback admin credentials are never stored in tracked files or displayed in
   logs/UI.
-- Remote forms are disabled for fallback admin sessions.
+- Remote inventory and user-management actions are disabled for fallback admin
+  sessions.
 - The service module owns request construction and response parsing.
-- README documents the expected remote request and response shape.
+- Inventory pagination, filters, inventory-code lookup, import/export,
+  stock-in, and consume workflows are usable.
+- `consumed` displays as "exhausted" in the UI, can be restored through
+  stock-in, and cannot be consumed again.
+- User management creation, editing, disabling, and password management are only
+  available to backend accounts with management permissions.
+- README and BUILD document the remote inventory, material specification, and
+  user-management operation and verification boundaries.
+
+**Verification:**
+
+```bash
+uv run python -m compileall main.py config core gui utils build.py
+uv run python -m unittest discover -s tests -p 'test_*.py'
+```
+
+During field integration, also log in with a backend account and verify
+paginated refresh, material-spec maintenance, stock-in, consume, XLSX
+import/export, and user management.
 
 ## Phase 4: AIIS Desktop Skill Candidate
 
@@ -239,5 +280,6 @@ Do not create the shared skill until the user explicitly asks for that step.
 - **Gate 2:** QSettings persistence is documented.
 - **Gate 3:** Existing local workflow still works on Windows + SolidWorks.
 - **Gate 4:** Sidebar/page split keeps the first screen useful.
-- **Gate 5:** Remote API page uses the settings/service boundary.
+- **Gate 5:** Remote PMMS pages use the settings/service boundary and pass
+  inventory and user-management acceptance.
 - **Gate 6:** Reusable desktop rules have enough evidence for a future skill.

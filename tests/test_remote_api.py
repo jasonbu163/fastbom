@@ -236,6 +236,34 @@ class RemoteApiClientTests(unittest.TestCase):
         self.assertIn("inventoryCode=RM%3ACODE", request.full_url)
         self.assertEqual(item["id"], 10)
 
+    def test_inventory_quantity_change_methods_use_action_endpoints(self):
+        client = RemoteApiClient(RemoteApiConfig(base_url="http://localhost:18080/", timeout_seconds=3))
+        client.set_session(RemoteApiSession("access-token", "refresh-token"))
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"id": 10, "quantity": 4}}
+            )
+
+            client.stock_in_inventory_item(10, {"quantity": 3, "source": "site-stock-in"})
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/inventory-items/10/stock-in")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(json.loads(request.data.decode("utf-8"))["source"], "site-stock-in")
+
+        with patch("services.remote_api.urlopen") as urlopen:
+            urlopen.return_value = FakeResponse(
+                {"code": 200, "message": "success", "data": {"id": 10, "quantity": 1}}
+            )
+
+            client.consume_inventory_item(10, {"quantity": 3, "source": "site-consume"})
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://localhost:18080/api/v1/inventory-items/10/consume")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(json.loads(request.data.decode("utf-8"))["source"], "site-consume")
+
     def test_preview_inventory_xlsx_sends_multipart_file(self):
         client = RemoteApiClient(RemoteApiConfig(base_url="http://localhost:18080/", timeout_seconds=3))
         client.set_session(RemoteApiSession("access-token", "refresh-token"))

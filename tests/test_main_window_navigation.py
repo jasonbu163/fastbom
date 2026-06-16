@@ -32,6 +32,8 @@ class MainWindowNavigationTests(unittest.TestCase):
 
         self.assertEqual(window.primary_sidebar.objectName(), "primarySidebar")
         self.assertEqual(window.windowTitle(), window_title_with_version())
+        self.assertGreaterEqual(window.minimumWidth(), 1360)
+        self.assertGreaterEqual(window.minimumHeight(), 820)
         self.assertEqual(window.content_card.objectName(), "contentCard")
         self.assertEqual(window.sidebar.count(), 4)
         self.assertEqual(window.sidebar.item(0).text(), "板材物料库存管理")

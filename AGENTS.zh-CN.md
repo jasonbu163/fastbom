@@ -2,7 +2,7 @@
 
 FastBOM 是一个带有 AIIS 风味的本地桌面应用。应把它视为一个
 PySide6 操作台，用于 BOM 驱动的工程文件处理、SolidWorks COM 自动化、
-DXF 后处理，以及未来的远程 API 表单提交。
+DXF 后处理、PMMS 板材物料库存和后端用户管理。
 
 ## 项目形态
 
@@ -35,7 +35,7 @@ DXF 后处理，以及未来的远程 API 表单提交。
   pandas、SolidWorks、DXF、文件系统或 HTTP 耗时工作。
 - `core/` 负责确定性的本地处理逻辑，以及 SolidWorks/DXF 行为。
 - 设置升级阶段不要重写本地核心业务逻辑；只有在必须把设置注入现有行为时，才做小范围兼容改动。
-- 未来远程 API 代码应放在 `MainWindow` 外部，优先使用小型 service/client 模块，
+- 远程 PMMS API 代码应放在 `MainWindow` 外部，优先使用小型 service/client 模块，
   例如 `services/remote_api.py`。
 - 设置/配置代码放在 `config/settings.py`。
 - 项目级工具放在 `tools/`；不要让工具脚本悄悄依赖 GUI 状态。
@@ -44,16 +44,17 @@ DXF 后处理，以及未来的远程 API 表单提交。
 
 - 引入新的业务页面后，不要继续给 `MainWindow` 追加更多纵向“步骤”。
 - 多工作流场景优先使用侧边栏 + `QStackedWidget` 页面模型：
-  本地处理、远程表单提交、设置应拆成独立页面。
+  本地处理、板材物料库存、用户管理、设置应拆成独立页面。
 - 当前本地处理流程位于 `gui/pages/local_processing_page.py`，并由 `MainWindow`
   中的页面栈承载。
 - 新增页面模块应小而清晰，并按工作流命名，例如
-  `gui/pages/remote_form_page.py`、`gui/pages/settings_page.py`。
+  `gui/pages/residual_material_page.py`、`gui/pages/user_management_page.py`、
+  `gui/pages/settings_page.py`。
 - 新增一级页面或本地处理子页面时，遵循 `docs/qt-navigation.zh-CN.md`。
 - 长耗时本地工作流页面应保持日志可见，提供显式“保存日志”动作，并且只在操作员
   显式点击时打开输出目录。
 - UI 文案应面向操作员、务实清楚。避免在应用内写营销式表达。
-- 远程 API 页面必须展示请求状态、响应摘要和错误反馈，并且不能冻结 UI。
+- 远程 PMMS 页面必须展示请求状态、响应摘要和错误反馈，并且不能冻结 UI。
 
 ## 配置规则
 
@@ -67,17 +68,18 @@ DXF 后处理，以及未来的远程 API 表单提交。
 ## 远程 API 契约规则
 
 - API URL、超时和认证相关值不能硬编码在页面里。
-- GET / POST payload 构造应放在 service/client 边界。UI 不应内联拼接 URL，
-  也不应直接序列化业务 payload。
+- GET / POST / PATCH / DELETE payload 构造应放在 service/client 边界。UI 不应
+  内联拼接 URL，也不应直接序列化业务 payload。
 - 如果本项目控制服务端契约，遵循 AIIS 响应结构：
   `{"code": 200, "message": "success", "data": ...}`。
 - 如果远程服务器使用不同契约，应在 service 模块和 README 中记录期望的请求/响应结构。
-- 实现远程表单页或 API client 前，必须先读取后端 `openapi.json`。
+- 实现或调整远程 PMMS 页面/API client 前，必须先读取
+  `pmms-integration-materials/` 中的后端契约材料。
 - 正常登录凭据必须来自后端 API。
 - 兜底 `admin` 登录只允许保存在本机 Qt 设置中，用于诊断或启动兜底。不要把
   兜底凭据写入已跟踪文件或日志。
 - 后端的保底最高权限账号不是这个 `admin` 账号。
-- 如果 Qt 客户端使用兜底 `admin` 强制登录，本次会话必须禁用远程表单工作流。
+- 如果 Qt 客户端使用兜底 `admin` 强制登录，本次会话必须禁用远程库存和用户管理工作流。
 - 桌面应用内不要维护长期 mock API。只有真实接口暂不可用时，才允许短期静态样例推进 UI。
 
 ## 验证

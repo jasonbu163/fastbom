@@ -1,6 +1,6 @@
 import os
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -37,6 +37,8 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         self.assertFalse(page.refresh_btn.isEnabled())
         self.assertFalse(page.add_material_btn.isEnabled())
         self.assertFalse(page.material_specs_btn.isEnabled())
+        self.assertFalse(page.stock_in_btn.isEnabled())
+        self.assertFalse(page.consume_btn.isEnabled())
         self.assertIn("离线", page.login_state_label.text())
 
     def test_backend_user_enables_remote_actions_and_sets_client_session(self):
@@ -50,6 +52,10 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
 
         self.assertTrue(page.refresh_btn.isEnabled())
         self.assertTrue(page.add_material_btn.isEnabled())
+        self.assertTrue(page.stock_in_btn.isEnabled())
+        self.assertTrue(page.consume_btn.isEnabled())
+        self.assertEqual(page.stock_in_btn.text(), "入库")
+        self.assertEqual(page.consume_btn.text(), "扣减 / 领用")
         self.assertEqual(page.material_specs_btn.text(), "物料规格")
         self.assertEqual(page.client.session.access_token, "access-token")
         self.assertIn("操作员", page.user_label.text())
@@ -193,6 +199,7 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         self.assertEqual(page.table.item(0, 2).text(), "RM:CODE")
         self.assertEqual(page.table.item(0, 3).text(), "整板")
         self.assertEqual(page.table.item(0, 9).text(), "manual review")
+        self.assertEqual(page.table.item(0, 12).text(), "可用")
         self.assertIsInstance(page.table.item(0, 0).data(256), int)
         page.table.selectRow(0)
         self.assertEqual(page._selected_item()["id"], 10)
@@ -201,6 +208,44 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         self.assertEqual(page._selected_items()[0]["inventoryCode"], "RM:CODE")
         self.assertEqual(page.total_label.text(), "共 45 条")
         self.assertEqual(page.page_label.text(), "第 2 / 3 页")
+
+    def test_select_all_header_toggles_current_page_export_selection(self):
+        remote_session = AuthSession.backend_user(
+            username="operator",
+            access_token="access-token",
+            refresh_token="refresh-token",
+        )
+        page = ResidualMaterialPage(settings=AppSettings(), auth_session=remote_session)
+
+        page._on_inventory_page_loaded(
+            {
+                "items": [
+                    {"id": 1, "inventoryCode": "RM:1", "inventoryType": "leftover"},
+                    {"id": 2, "inventoryCode": "RM:2", "inventoryType": "leftover"},
+                    {"id": 3, "inventoryCode": "RM:3", "inventoryType": "leftover"},
+                ],
+                "meta": {"page": 1, "pageSize": 20, "total": 3},
+            }
+        )
+
+        self.assertEqual(page.select_all_checkbox.checkState(), Qt.CheckState.Unchecked)
+
+        page.select_all_checkbox.setCheckState(Qt.CheckState.Checked)
+
+        self.assertEqual([item["inventoryCode"] for item in page._selected_items()], ["RM:1", "RM:2", "RM:3"])
+        for row in range(page.table.rowCount()):
+            self.assertEqual(page.table.item(row, 0).checkState(), Qt.CheckState.Checked)
+
+        page.table.item(1, 0).setCheckState(Qt.CheckState.Unchecked)
+
+        self.assertEqual(page.select_all_checkbox.checkState(), Qt.CheckState.PartiallyChecked)
+        self.assertEqual([item["inventoryCode"] for item in page._selected_items()], ["RM:1", "RM:3"])
+
+        page.select_all_checkbox.setCheckState(Qt.CheckState.Unchecked)
+
+        self.assertEqual(page._selected_items(), [])
+        for row in range(page.table.rowCount()):
+            self.assertEqual(page.table.item(row, 0).checkState(), Qt.CheckState.Unchecked)
 
     def test_api_success_callback_runs_on_gui_thread(self):
         remote_session = AuthSession.backend_user(
@@ -354,6 +399,65 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         page.table.sortItems(14)
 
         self.assertEqual(page.table.item(0, 2).text(), "RM:EARLY")
+
+    def test_consumed_status_displays_as_exhausted(self):
+        remote_session = AuthSession.backend_user(
+            username="operator",
+            access_token="access-token",
+            refresh_token="refresh-token",
+        )
+        page = ResidualMaterialPage(settings=AppSettings(), auth_session=remote_session)
+
+        page._on_inventory_page_loaded(
+            {
+                "items": [
+                    {
+                        "id": 30,
+                        "inventoryCode": "RM:DONE",
+                        "inventoryType": "leftover",
+                        "status": "consumed",
+                    }
+                ],
+                "meta": {"page": 1, "pageSize": 20, "total": 1},
+            }
+        )
+
+        self.assertEqual(page.table.item(0, 12).text(), "已耗尽")
+
+    def test_stock_in_allows_consumed_item_but_consume_blocks_it(self):
+        remote_session = AuthSession.backend_user(
+            username="operator",
+            access_token="access-token",
+            refresh_token="refresh-token",
+        )
+        page = ResidualMaterialPage(settings=AppSettings(), auth_session=remote_session)
+        page._show_inventory_delta_dialog = Mock()
+        page._on_inventory_page_loaded(
+            {
+                "items": [
+                    {
+                        "id": 30,
+                        "inventoryCode": "RM:DONE",
+                        "inventoryType": "leftover",
+                        "quantity": 0,
+                        "status": "consumed",
+                    }
+                ],
+                "meta": {"page": 1, "pageSize": 20, "total": 1},
+            }
+        )
+        page.table.selectRow(0)
+
+        page._stock_in_selected_item()
+
+        page._show_inventory_delta_dialog.assert_called_once_with(page.inventory_items[0], "stock_in")
+
+        page._show_inventory_delta_dialog.reset_mock()
+        with patch("gui.pages.residual_material_page.QMessageBox.warning") as warning:
+            page._consume_selected_item()
+
+        warning.assert_called_once()
+        page._show_inventory_delta_dialog.assert_not_called()
 
     def test_default_query_matches_available_inventory_page_spec(self):
         remote_session = AuthSession.backend_user(
