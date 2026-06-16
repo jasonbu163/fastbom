@@ -201,8 +201,8 @@ operator pages while keeping the UI separated from HTTP contracts.
 - Disable remote inventory and user-management workflows whenever the client
   session is force-logged in with fallback `admin`.
 - Show request status, response summary, and error feedback in the UI.
-- Use backend pagination for inventory lists, default to available inventory,
-  and support fuzzy inventory-code and material-grade filters.
+- Use backend pagination for inventory lists, show all statuses by default, and
+  support inventory-code, material-grade, and status filters.
 - Manage material specifications separately from inventory; backend validation
   rejects changing key material/thickness fields after inventory references
   exist.

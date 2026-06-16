@@ -356,7 +356,7 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         self.assertEqual(query["materialGrade"], "")
         self.assertEqual(query["thickness"], None)
         self.assertEqual(query["inventoryType"], "")
-        self.assertEqual(query["status"], "available")
+        self.assertEqual(query["status"], "")
         self.assertEqual(query["reusable"], None)
         self.assertEqual(query["minWidth"], None)
         self.assertEqual(query["minLength"], None)
@@ -459,7 +459,7 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         warning.assert_called_once()
         page._show_inventory_delta_dialog.assert_not_called()
 
-    def test_default_query_matches_available_inventory_page_spec(self):
+    def test_default_query_shows_all_inventory_statuses(self):
         remote_session = AuthSession.backend_user(
             username="operator",
             access_token="access-token",
@@ -471,7 +471,7 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         query = page._inventory_query()
 
         self.assertEqual(query["inventoryType"], "")
-        self.assertEqual(query["status"], "available")
+        self.assertEqual(query["status"], "")
         self.assertEqual(query["inventoryCode"], "RM:CODE")
         self.assertEqual(page.inventory_code_filter.placeholderText(), "库存编码片段 / 扫码内容")
         self.assertEqual(page.material_grade_filter.placeholderText(), "材质 / 牌号模糊搜索")

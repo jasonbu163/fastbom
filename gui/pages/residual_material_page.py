@@ -488,7 +488,7 @@ class ResidualMaterialPage(QWidget):
         self.status_filter.addItem("全部", "")
         for key, label in STATUS_LABELS.items():
             self.status_filter.addItem(label, key)
-        self.status_filter.setCurrentIndex(max(0, self.status_filter.findData("available")))
+        self.status_filter.setCurrentIndex(0)
         self._set_combo_min_width(self.status_filter, 112)
         self.inventory_type_filter = QComboBox()
         self.inventory_type_filter.addItem("全部", "")
@@ -670,7 +670,7 @@ class ResidualMaterialPage(QWidget):
         self.material_grade_filter.clear()
         self.thickness_filter.setValue(0.0)
         self.inventory_type_filter.setCurrentIndex(0)
-        self.status_filter.setCurrentIndex(max(0, self.status_filter.findData("available")))
+        self.status_filter.setCurrentIndex(0)
         self.reusable_filter.setCurrentIndex(0)
         self.min_width_filter.setValue(0.0)
         self.min_length_filter.setValue(0.0)
