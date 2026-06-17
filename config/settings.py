@@ -26,6 +26,11 @@ class OutputConfig:
 
 
 @dataclass(frozen=True)
+class InventoryConfig:
+    export_filename_prefix: str = "板材物料库存"
+
+
+@dataclass(frozen=True)
 class SolidWorksConfig:
     template_dir: str = "template"
     visible: bool = False
@@ -56,6 +61,7 @@ class AppSettings:
     app: AppConfig = AppConfig()
     bom: BomConfig = BomConfig()
     output: OutputConfig = OutputConfig()
+    inventory: InventoryConfig = InventoryConfig()
     solidworks: SolidWorksConfig = SolidWorksConfig()
     dxf: DxfConfig = DxfConfig()
     remote_api: RemoteApiConfig = RemoteApiConfig()
@@ -72,6 +78,7 @@ SETTING_SPECS: Tuple[Tuple[str, Any], ...] = (
     ("output.classified_dir", str),
     ("output.processed_dxf_dir", str),
     ("output.merged_dir", str),
+    ("inventory.export_filename_prefix", str),
     ("solidworks.template_dir", str),
     ("solidworks.visible", bool),
     ("dxf.text_layer", str),

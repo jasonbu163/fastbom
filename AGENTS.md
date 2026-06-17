@@ -84,8 +84,8 @@ user management.
   current form input.
 - Login-time settings own backend API base URL and request timeout.
 - Main settings page candidates: default BOM columns, template directory,
-  output folder names, SolidWorks visibility, DXF annotation parameters, and
-  offline admin password.
+  output folder names, inventory XLSX export filename prefix, SolidWorks
+  visibility, DXF annotation parameters, and offline admin password.
 - Do not expose theme editing in the settings page unless the user asks for a
   dedicated theme workflow.
 - Do not add configurability for one-off values unless it supports real field

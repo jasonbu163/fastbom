@@ -1,6 +1,7 @@
 from config.settings import (
     AppSettings,
     InMemorySettingsStore,
+    InventoryConfig,
     QtSettingsStore,
     RemoteApiConfig,
     can_use_remote_forms,
@@ -11,6 +12,7 @@ from config.settings import (
 __all__ = [
     "AppSettings",
     "InMemorySettingsStore",
+    "InventoryConfig",
     "QtSettingsStore",
     "RemoteApiConfig",
     "can_use_remote_forms",

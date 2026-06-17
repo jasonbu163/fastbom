@@ -1,5 +1,6 @@
 import os
 import unittest
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -488,6 +489,13 @@ class ResidualMaterialPageAuthTests(unittest.TestCase):
         query = page._inventory_query()
 
         self.assertEqual(query["inventoryType"], "leftover")
+
+    def test_default_export_filename_uses_configured_prefix_and_timestamp(self):
+        settings = AppSettings(inventory=type(AppSettings().inventory)(export_filename_prefix="现场库存"))
+
+        filename = ResidualMaterialPage._default_export_filename(settings, datetime(2026, 6, 16, 14, 30, 25))
+
+        self.assertEqual(filename, "现场库存-20260616-143025.xlsx")
 
     def test_local_time_display_does_not_convert_timezone(self):
         self.assertEqual(

@@ -16,6 +16,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.output.classified_dir, "1_分类结果")
         self.assertEqual(settings.output.processed_dxf_dir, "2_DXF处理结果")
         self.assertEqual(settings.output.merged_dir, "3_合并文件")
+        self.assertEqual(settings.inventory.export_filename_prefix, "板材物料库存")
         self.assertEqual(settings.solidworks.template_dir, "template")
         self.assertFalse(settings.solidworks.visible)
         self.assertEqual(settings.dxf.text_layer, "0")
@@ -33,6 +34,7 @@ class SettingsTests(unittest.TestCase):
                 "app.theme": "stored_theme.xml",
                 "bom.part_column": "零件号",
                 "bom.material_split_markers": "板;钢",
+                "inventory.export_filename_prefix": "现场库存",
                 "remote_api.base_url": "https://stored.example.test",
                 "remote_api.timeout_seconds": "30",
                 "solidworks.visible": "true",
@@ -44,6 +46,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.app.theme, "stored_theme.xml")
         self.assertEqual(settings.bom.part_column, "零件号")
         self.assertEqual(settings.bom.material_split_markers, "板;钢")
+        self.assertEqual(settings.inventory.export_filename_prefix, "现场库存")
         self.assertEqual(settings.remote_api.base_url, "https://stored.example.test")
         self.assertEqual(settings.remote_api.timeout_seconds, 30)
         self.assertTrue(settings.solidworks.visible)
@@ -67,6 +70,7 @@ class SettingsTests(unittest.TestCase):
             app=type(settings.app)(theme="stored_theme.xml"),
             bom=settings.bom,
             output=settings.output,
+            inventory=type(settings.inventory)(export_filename_prefix="导出台账"),
             solidworks=settings.solidworks,
             dxf=settings.dxf,
             remote_api=type(settings.remote_api)(
@@ -80,6 +84,7 @@ class SettingsTests(unittest.TestCase):
         loaded_settings = load_settings(store=store)
 
         self.assertEqual(loaded_settings.app.theme, "stored_theme.xml")
+        self.assertEqual(loaded_settings.inventory.export_filename_prefix, "导出台账")
         self.assertEqual(loaded_settings.remote_api.base_url, "https://api.example.test")
         self.assertEqual(loaded_settings.remote_api.timeout_seconds, 45)
 

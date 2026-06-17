@@ -195,6 +195,7 @@ class LoginDialog(QDialog):
             app=self.settings.app,
             bom=self.settings.bom,
             output=self.settings.output,
+            inventory=self.settings.inventory,
             solidworks=self.settings.solidworks,
             dxf=self.settings.dxf,
             remote_api=type(self.settings.remote_api)(

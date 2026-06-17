@@ -127,8 +127,8 @@ selected values through Qt's standard settings mechanism.
 - The login dialog owns backend API URL and request timeout, because those
   values are needed before the main window opens.
 - The settings page edits local workflow defaults such as BOM columns, template
-  directory, output folders, DXF parameters, SolidWorks visibility, and the
-  offline admin password.
+  directory, output folders, DXF parameters, SolidWorks visibility, inventory
+  export filename prefix, and the offline admin password.
 - The offline admin username is fixed as `admin`. Only its local password can
   be overwritten through `QSettings`; it must not be written to tracked files
   or logs.

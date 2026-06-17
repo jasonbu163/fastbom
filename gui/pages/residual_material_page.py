@@ -735,7 +735,7 @@ class ResidualMaterialPage(QWidget):
         save_path, _ = QFileDialog.getSaveFileName(
             self,
             "保存库存 XLSX",
-            "inventory-items.xlsx",
+            self._default_export_filename(self.settings),
             "Excel 文件 (*.xlsx)",
         )
         if not save_path:
@@ -1391,3 +1391,14 @@ class ResidualMaterialPage(QWidget):
         if item.get("width") or item.get("length"):
             parts.append(f"{item.get('width') or ''} x {item.get('length') or ''}")
         return " / ".join(parts) or "-"
+
+    @staticmethod
+    def _default_export_filename(settings: AppSettings, now: Optional[datetime] = None) -> str:
+        timestamp = (now or datetime.now()).strftime("%Y%m%d-%H%M%S")
+        prefix = ResidualMaterialPage._safe_filename_prefix(settings.inventory.export_filename_prefix)
+        return f"{prefix}-{timestamp}.xlsx"
+
+    @staticmethod
+    def _safe_filename_prefix(prefix: str) -> str:
+        cleaned = "".join("_" if char in '<>:"/\\|?*' else char for char in prefix.strip())
+        return cleaned or "板材物料库存"

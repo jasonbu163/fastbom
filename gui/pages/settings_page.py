@@ -49,6 +49,7 @@ class SettingsPage(QWidget):
 
         self._create_bom_group(content_layout)
         self._create_output_group(content_layout)
+        self._create_inventory_group(content_layout)
         self._create_solidworks_group(content_layout)
         self._create_dxf_group(content_layout)
         self._create_auth_group(content_layout)
@@ -93,6 +94,15 @@ class SettingsPage(QWidget):
         form.addRow("DXF处理目录", self.processed_dxf_dir_edit)
         form.addRow("合并目录", self.merged_dir_edit)
         layout.addWidget(self._group("输出目录", form))
+
+    def _create_inventory_group(self, layout: QVBoxLayout) -> None:
+        form = QFormLayout()
+        self.inventory_export_prefix_edit = QLineEdit(self.settings.inventory.export_filename_prefix)
+        note = QLabel("导出时默认文件名为：前缀-YYYYMMDD-HHMMSS.xlsx")
+        note.setWordWrap(True)
+        form.addRow("导出文件名前缀", self.inventory_export_prefix_edit)
+        form.addRow("", note)
+        layout.addWidget(self._group("板材物料库存", form))
 
     def _create_solidworks_group(self, layout: QVBoxLayout) -> None:
         form = QFormLayout()
@@ -148,6 +158,10 @@ class SettingsPage(QWidget):
                 classified_dir=self.classified_dir_edit.text().strip(),
                 processed_dxf_dir=self.processed_dxf_dir_edit.text().strip(),
                 merged_dir=self.merged_dir_edit.text().strip(),
+            ),
+            inventory=replace(
+                self.settings.inventory,
+                export_filename_prefix=self.inventory_export_prefix_edit.text().strip() or "板材物料库存",
             ),
             solidworks=replace(
                 self.settings.solidworks,

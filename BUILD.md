@@ -111,7 +111,8 @@ inspect or replace SolidWorks templates explicitly.
 PMMS 3.0 uses Qt `QSettings` for desktop configuration:
 
 - Login-time server URL and timeout are saved by the login dialog.
-- Local workflow defaults are edited from the settings page.
+- Local workflow defaults and the inventory export filename prefix are edited
+  from the settings page.
 - Windows stores these values through the platform-native QSettings backend.
 
 Do not write real passwords, tokens, customer IP addresses, or customer data
@@ -131,7 +132,8 @@ into tracked files or build documentation.
   specifications referenced by inventory.
 - Verify stock-in and consume actions instead of replacing quantity movement
   with normal edits.
-- Verify XLSX import preview, confirmed import, and selected inventory export.
+- Verify XLSX import preview, confirmed import, selected inventory export, and
+  default filenames in the `<name>-YYYYMMDD-HHMMSS.xlsx` format.
 - Verify an administrator account can open user management and create, edit, and
   disable users.
 - Run a small BOM and SolidWorks drawing conversion.

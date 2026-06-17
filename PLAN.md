@@ -73,6 +73,7 @@ workflow or adding the remote API page yet.
   - template directory;
   - SolidWorks visibility;
   - DXF text layer/color/default height/spacing;
+  - inventory XLSX export filename prefix;
   - future backend API base URL and request timeout;
   - fallback admin username and fallback admin password in local Qt settings.
 - Avoid changing local core business algorithms. Only touch `core/` where a
@@ -112,6 +113,8 @@ built-in defaults < QSettings persisted values < current form input
   visibility flag.
 - `DXFProcessor` can use configured annotation values without changing its
   public behavior for default settings.
+- Inventory XLSX export default filenames use a configurable prefix and local
+  timestamp.
 - Running with empty QSettings still behaves like the current application.
 - Full SolidWorks conversion remains functionally unchanged when defaults are
   used.
